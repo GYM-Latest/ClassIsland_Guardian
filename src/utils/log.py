@@ -7,7 +7,7 @@ import sys
 
 class Log:
     def __init__(self):
-        self.logfile = os.path.join(os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__), 'guardian.log')
+        self.logfile = os.path.join(os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__),'data', 'guardian.log')
     
     def _write(self,msg):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
