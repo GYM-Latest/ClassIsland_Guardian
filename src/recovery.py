@@ -27,10 +27,10 @@ def fix_guardian():
         # 备份日志文件
         try:
             try:
-                os.remove(os.path.join(guardianrecovery_path,'guardian.log'))
+                os.remove(os.path.join(guardianrecovery_path, 'guardian.log'))
             except:
                 pass
-            shutil.copy2(os.path.join(guardian_path,'guardian.log'), os.path.join(guardianrecovery_path,'guardian.log'))
+            shutil.copy2(os.path.join(guardian_path, 'data', 'guardian.log'), os.path.join(guardianrecovery_path, 'guardian.log'))
             Log.info(f'备份日志文件成功 ~')
         except Exception as e:
             Log.warn(f'备份日志文件失败，错误为：{e}')
@@ -53,8 +53,8 @@ def fix_guardian():
 
         # 恢复日志文件
         try:
-            shutil.copy2(os.path.join(guardianrecovery_path,'guardian.log'), os.path.join(guardian_path,'guardian.log'))
-            os.remove(os.path.join(guardianrecovery_path,'guardian.log'))
+            shutil.copy2(os.path.join(guardianrecovery_path, 'guardian.log'), os.path.join(guardian_path, 'data', 'guardian.log'))
+            os.remove(os.path.join(guardianrecovery_path, 'guardian.log'))
             Log.info(f'恢复日志文件成功 ~')
         except Exception as e:
             Log.warn(f'恢复日志文件失败，错误为：{e}')
