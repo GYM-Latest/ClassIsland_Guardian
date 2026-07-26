@@ -73,3 +73,8 @@ class Exec:
             return True
         else:
             return False
+
+    # 清空控制台
+    @staticmethod
+    def clear_terminal():
+        subprocess.run('cls', shell=True)

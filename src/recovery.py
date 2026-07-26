@@ -10,9 +10,7 @@ import time
 
 from utils.log import Log
 from utils.version import VERSION, CODENAME
-
-def clear():
-    subprocess.run('cls', shell=True)
+from utils.exec import Exec
 
 def find_guardianrecovery_path():
     """返回 GuardianRecovery 目录的路径(String)。如果未找到，返回False。"""
@@ -203,7 +201,7 @@ def main():
     # 获取 GuardianRecovery 路径
     guardianrecovery_path = find_guardianrecovery_path()
     Log.logfile = os.path.join(guardianrecovery_path,'recovery.log')
-    clear()
+    Exec.clear_terminal()
     Log.info('正在初始化预启动修复恢复环境...')
     if(not guardianrecovery_path):
         Log.error('未找到可用的恢复环境。程序将会退出。')
@@ -215,16 +213,14 @@ def main():
 
     # 打印欢迎画面
     time.sleep(2)
-    clear()
-    print(r'''
-   ___ _            ___    _              _    ___                  _ _             ___                             
+    Exec.clear_terminal()
+    print(r'''   ___ _            ___    _              _    ___                  _ _             ___                             
   / __| |__ _ _____|_ _|__| |__ _ _ _  __| |  / __|_  _ __ _ _ _ __| (_)__ _ _ _   | _ \___ __ _____ _____ _ _ _  _ 
  | (__| / _` (_-<_-<| |(_-< / _` | ' \/ _` | | (_ | || / _` | '_/ _` | / _` | ' \  |   / -_) _/ _ \ V / -_) '_| || |
   \___|_\__,_/__/__/___/__/_\__,_|_||_\__,_|  \___|\_,_\__,_|_| \__,_|_\__,_|_||_| |_|_\___\__\___/\_/\___|_|  \_, |
                                                                                                                |__/ 
 ''')
-    print(f'''
-ClassIsland Guardian Recovery
+    print(f'''ClassIsland Guardian Recovery
 版本：{VERSION} | ({CODENAME})
 ''')
 
