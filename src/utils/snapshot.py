@@ -23,7 +23,8 @@ class Snapshot:
             filelist = os.listdir(self.snapshot_dir)
             filelist.sort(reverse=True)
             return filelist
-        except:
+        except Exception as e:
+            Log.error(f'列出快照时出错，错误为：{e}')
             return False
         
     def restore_snapshot(self,name):
@@ -70,4 +71,13 @@ class Snapshot:
                 return False
         except Exception as e:
             Log.error(f'压缩文件时出错，错误是：{e}')
+            return False
+
+    def remove_snapshot(self,name):
+        '移除指定的快照。 传入要删除的快照名称(String) 成功返回True，失败返回False'
+        try:
+            os.remove(os.path.join(self.snapshot_dir, name))
+            return True
+        except Exception as e:
+            Log.error(f'移除快照时出错，错误为：{e}')
             return False
