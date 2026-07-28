@@ -68,8 +68,10 @@ def main():
 [0] 退出管理程序
 ''')
         result = readchar.readchar()
+        # 保护设置
         if(result == '1'):
             pass
+        # 快照管理
         elif(result == '2'):
             while True:
                 Exec.clear_terminal()
@@ -106,26 +108,29 @@ def main():
                                         if(result == '1'):
                                             print('正在恢复快照，稍安勿躁 ~')
                                             Snapshot.restore_snapshot(snapshot_list[int(select_snapshot) - 1])
+                                            time.sleep(1)
                                             break
                                         elif(result == '2'):
-                                            print('正在删除快照，稍安勿躁')
+                                            print('正在删除快照，稍安勿躁 ~')
                                             Snapshot.remove_snapshot(snapshot_list[int(select_snapshot) - 1])
+                                            time.sleep(1)
                                             break
                                         elif(result == '0'):
                                             break
 
-                    if(result == '2'):
+                    elif(result == '2'):
                         print('正在创建快照，稍安勿躁 ~~~')
                         result = Snapshot.create_snapshot()
                         if(result):
                             print(f'成功创建了新快照 ~ ：{result}')
                         time.sleep(1)
                         break
-                    if(result == '0'):
+                    elif(result == '0'):
                         break
                 except Exception as e:
                     Log.error(f'快照操作失败，错误为：{e}')
                     time.sleep(1)
+        # 日志菜单
         elif(result == '3'):
             while True:
                 Exec.clear_terminal()
@@ -151,10 +156,13 @@ def main():
                 except Exception as e:
                     Log.error(f'打开日志文件失败，错误为：{e}')
                     time.sleep(1)
+        # 系统设置
         elif(result == '4'):
             pass
+        # 关于
         elif(result == '5'):
             pass
+        # 退出
         elif(result == '0'):
             sys.exit(0)
         else:
