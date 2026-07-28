@@ -5,7 +5,9 @@ import subprocess
 import os
 import time
 import sys
-from datetime import datetime 
+from datetime import datetime
+import utils.win_graceful_shutdown
+import atexit
 
 from utils.log import Log
 from utils.database import Database
@@ -43,6 +45,10 @@ def register_self():
     except Exception:
         Log.info('')
         return False
+
+# 进程退出后处理函数
+def in_shutdown():
+    pass
 
 # 进程丢失后处理函数
 def process_missing():
@@ -102,6 +108,8 @@ def main():
                 close_fds=True
             )
             sys.exit(0)
+
+atexit.register(in_shutdown)
 
 if __name__ == "__main__":
     main()
