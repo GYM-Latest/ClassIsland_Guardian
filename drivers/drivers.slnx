@@ -3,10 +3,13 @@
     <Platform Name="ARM64" />
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="file/file.vcxproj">
+  <Project Path="E:/SXSJ Software/ClassIsland_Guardian/drivers/file/file.vcxproj" Id="7adfb7ed-ffcd-5981-53ba-8c6620ac8875">
     <Deploy />
   </Project>
-  <Project Path="process/process.vcxproj">
+  <Project Path="E:/SXSJ Software/ClassIsland_Guardian/drivers/process/process.vcxproj" Id="ba93ae5b-8d4f-f42a-1ecb-3993153c5d91">
+    <Deploy />
+  </Project>
+  <Project Path="E:/SXSJ Software/ClassIsland_Guardian/drivers/registry/registry.vcxproj" Id="5e90abb1-9acd-7edd-667a-2b9b0b14cdb8">
     <Deploy />
   </Project>
 </Solution>
