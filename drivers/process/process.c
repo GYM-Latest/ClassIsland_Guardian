@@ -180,10 +180,6 @@ OB_PREOP_CALLBACK_STATUS CIGProcessPreOperation(
     if (OperationInformation->ObjectType != *PsProcessType) {
         return OB_PREOP_SUCCESS;
     }
-    // 白名单进程直接放行
-    if (IsProcessTrusted()) {
-        return OB_PREOP_SUCCESS;
-    }
 
     // 通用拦截
     PEPROCESS targetProcess = (PEPROCESS)OperationInformation->Object;
@@ -199,6 +195,10 @@ OB_PREOP_CALLBACK_STATUS CIGProcessPreOperation(
             saveProcessPath[processPath->Length / sizeof(WCHAR)] = L'\0';
             if (wcsstr(saveProcessPath, g_guardianExeName.Buffer) != NULL ||
                 wcsstr(saveProcessPath, g_classislandExeName.Buffer) != NULL) {
+                // 白名单进程直接放行
+                if (IsProcessTrusted()) {
+                    return OB_PREOP_SUCCESS;
+                }
                 PACCESS_MASK DesiredAccess = NULL;
                 switch (OperationInformation->Operation) {
                 case OB_OPERATION_HANDLE_CREATE:

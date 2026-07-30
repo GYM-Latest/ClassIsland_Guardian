@@ -9,8 +9,6 @@
 
 #pragma prefast(disable:__WARNING_ENCODE_MEMBER_FUNCTION_POINTER, "Not valid for kernel mode drivers")
 
-#define _WIN32_WINNT 0x0A00
-
 // 定义保护与白名单路径
 #pragma data_seg("NONPAGED")
 // 白名单
@@ -257,17 +255,10 @@ CIGPreWrite(
 )
 {
     *CompletionContext = NULL;
-    UNREFERENCED_PARAMETER(Data);
-    UNREFERENCED_PARAMETER(FltObjects);
-    UNREFERENCED_PARAMETER(CompletionContext);
 
      // 快速核验
     // 高IRQL下直接放行
     if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
-        return FLT_PREOP_SUCCESS_NO_CALLBACK;
-    }
-    // 白名单进程直接放行
-    if (IsProcessTrusted()) {
         return FLT_PREOP_SUCCESS_NO_CALLBACK;
     }
 
@@ -326,6 +317,11 @@ CIGPreWrite(
                 // 拦截逻辑
                 if (FsRtlIsNameInExpression(&g_guardianRecoveryPath, &targetInfo->Name, TRUE, NULL) ||
                     FsRtlIsNameInExpression(&g_guardianPath, &targetInfo->Name, TRUE, NULL)) {
+                    // 白名单进程直接放行
+                    if (IsProcessTrusted()) {
+                        FltReleaseFileNameInformation(targetInfo);
+                        return FLT_PREOP_SUCCESS_NO_CALLBACK;
+                    }
                     Data->IoStatus.Status = STATUS_ACCESS_DENIED;
                     Data->IoStatus.Information = 0;
                     FltReleaseFileNameInformation(targetInfo);
@@ -354,7 +350,12 @@ CIGPreWrite(
 
             __try {
                 // 拦截逻辑
-                if (FsRtlIsNameInExpression(&g_guardianRecoveryPath, &saveFileNameInfo, TRUE, NULL) || FsRtlIsNameInExpression(&g_guardianPath, &saveFileNameInfo, TRUE, NULL)) {
+                if (FsRtlIsNameInExpression(&g_guardianRecoveryPath, &saveFileNameInfo, TRUE, NULL) ||
+                    FsRtlIsNameInExpression(&g_guardianPath, &saveFileNameInfo, TRUE, NULL)) {
+                    // 白名单进程直接放行
+                    if (IsProcessTrusted()) {
+                        return FLT_PREOP_SUCCESS_NO_CALLBACK;
+                    }
                     Data->IoStatus.Status = STATUS_ACCESS_DENIED;
                     Data->IoStatus.Information = 0;
                     FltReleaseFileNameInformation(fileNameInfo);
@@ -367,10 +368,12 @@ CIGPreWrite(
         }
         else {
             if (status == STATUS_FLT_DELETING_OBJECT || status == STATUS_VOLUME_DISMOUNTED) {
+                FltReleaseFileNameInformation(fileNameInfo);
                 return FLT_PREOP_SUCCESS_NO_CALLBACK;
             }
             Data->IoStatus.Status = STATUS_ACCESS_DENIED;
             Data->IoStatus.Information = 0;
+            FltReleaseFileNameInformation(fileNameInfo);
             return FLT_PREOP_COMPLETE;
         }
         FltReleaseFileNameInformation(fileNameInfo);
@@ -387,17 +390,11 @@ CIGPreRead(
 )
 {
     *CompletionContext = NULL;
-    UNREFERENCED_PARAMETER(Data);
     UNREFERENCED_PARAMETER(FltObjects);
-    UNREFERENCED_PARAMETER(CompletionContext);
 
     // 快速核验
     // 高IRQL下直接放行
     if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
-        return FLT_PREOP_SUCCESS_NO_CALLBACK;
-    }
-    // 白名单进程直接放行
-    if (IsProcessTrusted()) {
         return FLT_PREOP_SUCCESS_NO_CALLBACK;
     }
 
@@ -418,8 +415,10 @@ CIGPreRead(
             // 拦截逻辑
             __try {
                 if (FsRtlIsNameInExpression(&g_guardianRecoveryPath, &saveFileNameInfo, TRUE, NULL)) {
-                    DbgPrint("[CIG] ParentDir: %wZ\n", &fileNameInfo->Name);
-                    DbgPrint("[CIG] FLT_PREOP_COMPLETE\n\n");
+                    // 白名单进程直接放行
+                    if (IsProcessTrusted()) {
+                        return FLT_PREOP_SUCCESS_NO_CALLBACK;
+                    }
                     Data->IoStatus.Status = STATUS_ACCESS_DENIED;
                     Data->IoStatus.Information = 0;
                     FltReleaseFileNameInformation(fileNameInfo);
@@ -432,10 +431,12 @@ CIGPreRead(
         }
         else {
             if (status == STATUS_FLT_DELETING_OBJECT || status == STATUS_VOLUME_DISMOUNTED) {
+                FltReleaseFileNameInformation(fileNameInfo);
                 return FLT_PREOP_SUCCESS_NO_CALLBACK;
             }
             Data->IoStatus.Status = STATUS_ACCESS_DENIED;
             Data->IoStatus.Information = 0;
+            FltReleaseFileNameInformation(fileNameInfo);
             return FLT_PREOP_COMPLETE;
         }
         FltReleaseFileNameInformation(fileNameInfo);

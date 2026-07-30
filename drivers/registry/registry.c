@@ -72,7 +72,7 @@ NTSTATUS DriverEntry(
         g_configExePath.MaximumLength = (USHORT)sizeof(L"\\DEVICE\\HARDDISKVOLUME*\\PROGRAM FILES\\GUARDIAN\\CONFIG.EXE");
     }
 
-    // guardianRegPath — * 替代 control set 段
+    // guardianRegPath
     buffer = (PWCHAR)ExAllocatePool2(POOL_FLAG_NON_PAGED,
         sizeof(L"\\REGISTRY\\MACHINE\\SYSTEM\\*\\SERVICES\\GUARDIAN*"),
         'CIGR');
@@ -211,8 +211,7 @@ CIGRegistryCallback(
         notifyClass == RegNtPreSetValueKey ||
         notifyClass == RegNtPreDeleteValueKey ||
         notifyClass == RegNtPreRenameKey ||
-        notifyClass == RegNtPreSetInformationKey ||
-        notifyClass == RegNtPreCreateKey)
+        notifyClass == RegNtPreSetInformationKey)
     {
         PCUNICODE_STRING keyPath = NULL;
         CmCallbackGetKeyObjectID(
@@ -223,11 +222,11 @@ CIGRegistryCallback(
         if (keyPath != NULL) {
             // F**k you Microsoft
             // 这里微软文档错了害我排查了半天。不要删这里的 (PUNICODE_STRING) 强转
-            DbgPrint("[CIG-Registry] keyPath=%wZ\n", keyPath);
             if (FsRtlIsNameInExpression(&g_guardianRegPath, (PUNICODE_STRING)keyPath, TRUE, NULL) ||
                     FsRtlIsNameInExpression(&g_fileRegPath, (PUNICODE_STRING)keyPath, TRUE, NULL) ||
                     FsRtlIsNameInExpression(&g_processRegPath, (PUNICODE_STRING)keyPath, TRUE, NULL) || 
                     FsRtlIsNameInExpression(&g_registryRegPath, (PUNICODE_STRING)keyPath, TRUE, NULL)) {
+                // 白名单进程直接放行
                 if (IsProcessTrusted()) {
                     return STATUS_SUCCESS;
                 }
