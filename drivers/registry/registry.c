@@ -29,11 +29,6 @@ NTSTATUS DriverEntry(
 	_In_ PUNICODE_STRING RegistryPath
 );
 
-NTSTATUS
-CIGRegistryUnload(
-	_In_ PDRIVER_OBJECT DriverObject
-);
-
 BOOLEAN IsProcessTrusted(VOID);
 
 NTSTATUS DriverEntry(
@@ -136,31 +131,7 @@ NTSTATUS DriverEntry(
         return status;
     }
 
-	DriverObject->DriverUnload = CIGRegistryUnload;
-    return STATUS_SUCCESS;
-}
-
-NTSTATUS
-CIGRegistryUnload(
-	_In_ PDRIVER_OBJECT DriverObject
-)
-{
-    UNREFERENCED_PARAMETER(DriverObject);
-
-    // 卸载注册表回调
-    if (g_CmCookie.QuadPart) {
-        CmUnRegisterCallback(g_CmCookie);
-        g_CmCookie.QuadPart = 0;
-    }
-
-    // 释放占用的内存
-    if (g_guardianExePath.Buffer)        ExFreePool(g_guardianExePath.Buffer);
-    if (g_configExePath.Buffer)          ExFreePool(g_configExePath.Buffer);
-    if (g_guardianRegPath.Buffer)        ExFreePool(g_guardianRegPath.Buffer);
-    if (g_processRegPath.Buffer)         ExFreePool(g_processRegPath.Buffer);
-    if (g_fileRegPath.Buffer)            ExFreePool(g_fileRegPath.Buffer);
-    if (g_registryRegPath.Buffer)        ExFreePool(g_registryRegPath.Buffer);
-
+	DriverObject->DriverUnload = NULL;
     return STATUS_SUCCESS;
 }
 

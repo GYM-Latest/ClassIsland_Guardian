@@ -47,11 +47,6 @@ DriverEntry(
 );
 
 NTSTATUS
-CIGFileUnload(
-    _In_ FLT_FILTER_UNLOAD_FLAGS Flags
-);
-
-NTSTATUS
 CIGFileQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
@@ -61,7 +56,6 @@ CIGFile_FILTER_DATA CIGFileFilterData;
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(INIT, DriverEntry)
-#pragma alloc_text(PAGE,   CIGFileUnload)
 #pragma alloc_text(PAGE, CIGFileQueryTeardown)
 #endif
 
@@ -101,7 +95,7 @@ CONST FLT_REGISTRATION FilterRegistration = {
     NULL,                               //  Context
     Callbacks,                               //  Operation callbacks
 
-    CIGFileUnload,                         //  FilterUnload
+    NULL,                         //  FilterUnload
 
     NULL,                               //  InstanceSetup
     CIGFileQueryTeardown,                  //  InstanceQueryTeardown
@@ -188,26 +182,9 @@ DriverEntry(
             FltUnregisterFilter(CIGFileFilterData.FilterHandle);
         }
     }
+
+    DriverObject->DriverUnload = NULL;
     return status;
-}
-
-NTSTATUS
-CIGFileUnload(
-    _In_ FLT_FILTER_UNLOAD_FLAGS Flags
-)
-{
-    UNREFERENCED_PARAMETER(Flags);
-
-    PAGED_CODE();
-
-    FltUnregisterFilter(CIGFileFilterData.FilterHandle);
-
-    if (g_guardianRecoveryPath.Buffer) ExFreePool(g_guardianRecoveryPath.Buffer);
-    if (g_guardianPath.Buffer)          ExFreePool(g_guardianPath.Buffer);
-    if (g_guardianExePath.Buffer)       ExFreePool(g_guardianExePath.Buffer);
-    if (g_configExePath.Buffer)         ExFreePool(g_configExePath.Buffer);
-
-    return STATUS_SUCCESS;
 }
 
 NTSTATUS
