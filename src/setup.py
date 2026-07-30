@@ -2,37 +2,31 @@
 # Copyright (C) 2026 GYM_Latest
 
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
 import os
 import shutil
 import hashlib
-import secrets
-import sqlite3
 import psutil
-from datetime import datetime
 from prompt_toolkit import prompt
 import time
 import getpass
 import ctypes
 import sys
 import subprocess
+import winreg
 
 from utils.database import Database
-
-version = 'v0.20260531.1'
-maketime = '2026-5-31 9:08'
+from utils.exec import Exec
+from utils.snapshot import Snapshot
+from utils.version import VERSION , CODENAME
 
 class config():
     def __init__(self):
         self.classisland_path = self.find_classisland()
         self.guardian_path = None
-        self.classisland_backup_path = r'C:\install.wim'
         self.password = ''
         self.is_process_protect = False
         self.is_prevent_deletion_protect = False
         self.is_prestart = False
-
-        self.path = {}
 
     def find_classisland(self):
         process_names = ['ClassIsland.Desktop.exe']
@@ -42,34 +36,111 @@ class config():
                     install_dir = os.path.dirname(os.path.dirname(exe_path))
                     return install_dir
         return None
-    
-    def set_config(self):
-        pass
-
-def clear():
-    subprocess.run('cls', shell=True)
 
 def install():
-    clear()
+    Exec.clear_terminal()
 
-    print('将在倒计时结束后开始安装.')
+    print('将在倒计时结束后开始安装 ~')
     for i in range(5,0,-1):
         print(i,end=" ",flush=True)
         time.sleep(1)
     
     print('\n')
-    
+
+    # 关闭ClassIsland
+    Exec.kill_process('ClassIsland.Desktop.exe')
+
+    # 创建目录
+    recovery_dir = os.path.join(os.environ.get('SystemDrive', 'C:') + '\\', 'GuardianRecovery')
+    guardian_dir = os.path.join(os.environ.get('ProgramFiles', r'C:\Program Files'), 'Guardian')
+
+    if not os.path.exists(recovery_dir):
+        os.makedirs(recovery_dir)
+        print(f'  已创建 {recovery_dir} ~')
+
+    # 生成配置文件
+    os.makedirs(os.path.join(guardian_dir, 'data'), exist_ok=True)
+    db = Database(guardian_dir)
+    db.new_database({
+        'classisland_path': config.classisland_path,
+        'guardian_path': guardian_dir,
+        'password': hashlib.sha256(config.password.encode('utf-8')).hexdigest() if config.password else '',
+        'is_process_protect': config.is_process_protect,
+        'is_prestart': config.is_prestart,
+        'is_prevent_deletion_protect': config.is_prevent_deletion_protect,
+    })
+    print(f'  配置文件已生成 ~\n')
+
+    # 复制 guardian 目录
+    def copy_and_log(src, dst):
+        print(f'正在安装：{dst}')
+        shutil.copy2(src, dst)
+    shutil.copytree(
+        os.path.join(Exec.get_exe_path(), 'appdata'),
+        guardian_dir,
+        copy_function=copy_and_log,
+        dirs_exist_ok=True
+    )
+    # 复制 GuardianRecovery\stable
+    def copy_and_log(src, dst):
+            print(f'正在安装：{dst}')
+            shutil.copy2(src, dst)
+    shutil.copytree(
+        os.path.join(Exec.get_exe_path(), 'appdata'),
+        os.path.join(recovery_dir, 'stable'),
+        copy_function=copy_and_log,
+        dirs_exist_ok=True
+    )
+    # 复制并注册内核驱动
+    src_drivers = os.path.join(Exec.get_exe_path(), 'drivers')
+    sys_dir = os.path.join(os.environ.get('SystemRoot', r'C:\Windows'), 'System32', 'drivers')
+
+    # file
+    shutil.copy2(os.path.join(src_drivers, 'file.sys'), os.path.join(sys_dir, 'file.sys'))
+    subprocess.run(['sc', 'create', 'file', 'type=', 'kernel', 'start=', 'boot', 'binPath=', os.path.join(sys_dir, 'file.sys')], capture_output=True)
+    key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r'SYSTEM\CurrentControlSet\Services\file\Instances\file_Instance')
+    winreg.SetValueEx(key, 'Altitude', 0, winreg.REG_SZ, '328000')
+    winreg.SetValueEx(key, 'Flags', 0, winreg.REG_DWORD, 0)
+    winreg.CloseKey(key)
+    key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r'SYSTEM\CurrentControlSet\Services\file\Instances')
+    winreg.SetValueEx(key, 'DefaultInstance', 0, winreg.REG_SZ, 'file_Instance')
+    winreg.CloseKey(key)
+    print(f'file.sys 已就绪 ~')
+
+    # process
+    shutil.copy2(os.path.join(src_drivers, 'process.sys'), os.path.join(sys_dir, 'process.sys'))
+    subprocess.run(['sc', 'create', 'process', 'type=', 'kernel', 'start=', 'boot', 'binPath=', os.path.join(sys_dir, 'process.sys')], capture_output=True)
+    print(f'process.sys 已就绪 ~')
+
+    # registry
+    shutil.copy2(os.path.join(src_drivers, 'registry.sys'), os.path.join(sys_dir, 'registry.sys'))
+    subprocess.run(['sc', 'create', 'registry', 'type=', 'kernel', 'start=', 'boot', 'binPath=', os.path.join(sys_dir, 'registry.sys')], capture_output=True)
+    print(f'registry.sys 已就绪 ~')
+
+    # 注册 guardian 守护进程服务
+    guardian_exe = os.path.join(guardian_dir, 'guardian.exe')
+    if os.path.exists(guardian_exe):
+        subprocess.run(['sc', 'create', 'guardian', 'type=', 'own', 'start=', 'auto', 'binPath=', guardian_exe], capture_output=True)
+        subprocess.run(['sc', 'failure', 'guardian', 'reset=', '0', 'actions=', 'crash/0'], capture_output=True)
+        print(f'guardian 已就绪 ~')
+
+    # 创建首个快照
+    db.read_database()
+    snapshot = Snapshot(db)
+    snapshot.snapshot_dir = os.path.join(guardian_dir, 'data', 'snapshot')
+    print(f'创建了首个快照：{snapshot.create_snapshot()} ~')
+
+    print(f'安装完成，重启后生效 ~')
 
 def configure():
     # 起始页面
     while(True):
-        clear()
+        Exec.clear_terminal()
         print(f'ClassIsland Guardian Installer')
-        print(f'版本 {version}')
-        print(f'生成于 {maketime}\n')
-        print(f'欢迎，该配置向导会帮助你完成 ClassIsland Guardian 的安装与配置.\n')
-        print(f'要开始，请输入 y 并按 ENTER')
-        print(f'要退出向导，请输入 n 并按 ENTER')
+        print(f'版本 {VERSION} | {CODENAME}')
+        print(f'欢迎，该配置向导会帮你完成 ClassIsland Guardian 的安装与配置 ~\n')
+        print(f'要开始，请输入 y 再按 ENTER')
+        print(f'要退出向导，请输入 n 再按 ENTER')
         result = input('>')
         if(result ==  'y'):
             break
@@ -78,58 +149,22 @@ def configure():
 
     # 选择classisland路径
     while(True):
-        clear()
-        print(f'请输入ClassIsland的路径')
-        print(f'输入完成后 按 ENTER .')
+        Exec.clear_terminal()
+        print(f'请输入 ClassIsland 的路径 ~')
+        print(f'输好后按 ENTER 就好 ~')
         path = prompt('>',default=(config.find_classisland() or ''))
         if(path != ''):
-            config.path[""] = path
+            config.classisland_path = path
             break
         else:
-            print('请输入路径！')
+            print('唔... 路径不能为空哦 ~')
             time.sleep(1)
-    
-    # 选择guardian路径
-    while(True):
-        clear()
-        print(f'请输入程序安装路径,所有文件及配置都会存储到该目录下')
-        print()
-        print(f'输入完成后 按 ENTER .')
-        path = prompt('>',default=r'C:\guardian')
-        if(path != ''):
-            config.guardian_path = path
-            break
-        else:
-            print('请输入路径！')
-            time.sleep(1)
-
-    # 选择全量备份文件存储路径
-    # 由于重构，所有数据都存在 安装目录\data 下，该功能废弃，发布时将删除
-    # clear()
-    # print(f'请输入全量备份文件存储路径，该文件用于存储ClassIsland全量备份，用于修复')
-    # print(r'默认值: C:\install.wim')
-    # print()
-    # print(f'输入完成后 按 ENTER .')
-    # print(f'若要使用默认值，按 ENTER .')
-    # path = input('>')
-    # if(path != ''):
-    #     config.backup_path = path
-
-    clear()
-    # 选择是否开启预启动修复
-    print(f'是否需要开启 预启动修复\n')
-    print(f'要开启，请输入 y 并按 ENTER')
-    print(f'要关闭，请输入 任何其他值  并按 ENTER')
-    if(input('>') ==  'y'):
-        config.is_prestart = True
-    else:
-        config.is_prestart = False
 
     # 选择密码保护
     while(True):
-        clear()
-        print(f'请设置管理密码（留空则不启用）\n')
-        print(f'为了安全，输入的密码将不显示')
+        Exec.clear_terminal()
+        print(f'请设置管理密码 ~（留空则不启用）\n')
+        print(f'为安全起见，输入不会显示出来哦')
         password = getpass.getpass('>')
         if(password):
             print(f'确认密码')
@@ -138,17 +173,18 @@ def configure():
                 config.password = password
                 break
             else:
-                print(f'输入的两次密码不一致！请重试...')
+                print(f'唔... 两次密码不一样呢，再试一次吧 ~')
                 time.sleep(1)
         else:
             break
     
     # 开始安装
     while(True):
-        clear()
-        print(f'所有配置均已结束.\n')
-        print(f'输入 install 并按 ENTER 以开始安装')
-        print(f'安装过程中 ClassIsland 将短暂关闭')
+        Exec.clear_terminal()
+        print(f'所有配置都填好啦 ~\n')
+        print(f'输入 install 再按 ENTER 就可以开始安装了')
+        print(f'安装过程中 ClassIsland 会稍微歇一下下 ~')
+        print(f'如果安装过程中杀软的大手发力了，麻烦关一下，非常感谢！ ~')
         if(input('>') ==  'install'):
             install()
             break
@@ -164,7 +200,8 @@ def main():
                                             sys.executable,
                                             " ".join(sys.argv), None, 1)
 
-    db = Database('.\\','','')
+    global db
+    db = Database(os.path.join(os.environ.get('ProgramFiles', r'C:\Program Files'), 'Guardian'))
     global config
     config = config()
     configure()
