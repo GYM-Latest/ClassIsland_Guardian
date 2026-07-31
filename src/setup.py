@@ -21,21 +21,22 @@ from utils.version import VERSION , CODENAME
 
 class config():
     def __init__(self):
-        self.classisland_path = self.find_classisland()
+        self.classisland_path = None
         self.guardian_path = None
         self.password = ''
         self.is_process_protect = False
         self.is_prevent_deletion_protect = False
         self.is_prestart = False
 
-    def find_classisland(self):
-        process_names = ['ClassIsland.Desktop.exe']
-        for proc in psutil.process_iter(['name', 'exe']):
-                if proc.info['name'] in process_names:
-                    exe_path = proc.info['exe']
-                    install_dir = os.path.dirname(os.path.dirname(exe_path))
-                    return install_dir
-        return None
+def find_classisland():
+    '''寻找 ClassIsland 的安装路径。 返回 ClassIsland 的安装路径(String)'''
+    process_names = ['ClassIsland.Desktop.exe']
+    for proc in psutil.process_iter(['name', 'exe']):
+            if proc.info['name'] in process_names:
+                exe_path = proc.info['exe']
+                classisland_path = os.path.dirname(os.path.dirname(exe_path))
+                return classisland_path
+    return None
 
 def install():
     Exec.clear_terminal()
@@ -56,7 +57,7 @@ def install():
 
     if not os.path.exists(recovery_dir):
         os.makedirs(recovery_dir)
-        print(f'  已创建 {recovery_dir} ~')
+        print(f'已创建 {recovery_dir} ~')
 
     # 生成配置文件
     os.makedirs(os.path.join(guardian_dir, 'data'), exist_ok=True)
@@ -69,7 +70,7 @@ def install():
         'is_prestart': config.is_prestart,
         'is_prevent_deletion_protect': config.is_prevent_deletion_protect,
     })
-    print(f'  配置文件已生成 ~\n')
+    print(f'配置文件已生成 ~\n')
 
     # 复制 guardian 目录
     def copy_and_log(src, dst):
@@ -120,8 +121,10 @@ def install():
     # 注册 guardian 守护进程服务
     guardian_exe = os.path.join(guardian_dir, 'guardian.exe')
     if os.path.exists(guardian_exe):
+        # Belike 无保护单兵突入大气层
         subprocess.run(['sc', 'create', 'guardian', 'type=', 'own', 'start=', 'auto', 'binPath=', guardian_exe], capture_output=True)
-        subprocess.run(['sc', 'failure', 'guardian', 'reset=', '0', 'actions=', 'crash/0'], capture_output=True)
+        subprocess.run(['sc', 'config', 'guardian', 'error=', 'critical'], capture_output=True, check=False)
+        subprocess.run(['sc', 'failure', 'guardian', 'reset=', '0', 'actions=', 'reboot/0'], capture_output=True, text=True)
         print(f'guardian 已就绪 ~')
 
     # 创建首个快照
@@ -152,7 +155,7 @@ def configure():
         Exec.clear_terminal()
         print(f'请输入 ClassIsland 的路径 ~')
         print(f'输好后按 ENTER 就好 ~')
-        path = prompt('>',default=(config.find_classisland() or ''))
+        path = prompt('>',default=(find_classisland() or ''))
         if(path != ''):
             config.classisland_path = path
             break
@@ -199,11 +202,11 @@ def main():
         ctypes.windll.shell32.ShellExecuteW(None, "runas",
                                             sys.executable,
                                             " ".join(sys.argv), None, 1)
+        sys.exit(0)
 
-    global db
-    db = Database(os.path.join(os.environ.get('ProgramFiles', r'C:\Program Files'), 'Guardian'))
     global config
     config = config()
+
     configure()
 
 if __name__ == "__main__":
