@@ -9,6 +9,7 @@ import atexit
 import signal
 import ctypes
 
+from utils.exec import Exec
 
 # you can override these variables in the main script if you want the windows shutdown screen to say something else
 APPNAME = os.path.basename(__file__)
@@ -45,15 +46,13 @@ def window_thread():
             return 0
 
         if message == win32con.WM_DESTROY:
-            c_raise(signal.SIGTERM)
-            win32gui.PostQuitMessage(0) # allows PumpMessages() to return, which will cause this thread to end
+            print('进程结束请求已被拦截。')
             return 0
 
         if message == win32con.WM_ENDSESSION: # WM_ENDSESSION gets called by windows once WM_QUERYENDSESSION returns True
             EXIT_REASON = win32con.WM_ENDSESSION
-            c_raise(signal.SIGTERM)
-            while True: # we are in a daemon thread here, this will end as soon as the main thread dies
-                time.sleep(1)
+            Exec.unmake_process_critical()
+            sys.exit(0)
 
         if message == win32con.WM_QUERYENDSESSION:
             # Windows will kill a process after 5 seconds unless it calls ShutdownBlockReasonCreate
