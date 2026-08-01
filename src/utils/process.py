@@ -3,7 +3,6 @@
 
 import psutil
 import os
-import subprocess
 import time
 
 from utils.log import Log
