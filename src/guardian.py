@@ -1,13 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 GYM_Latest
 
-import subprocess
 import os
 import time
 import sys
 from datetime import datetime
 import utils.win_graceful_shutdown
-import atexit
 
 from utils.log import Log
 from utils.database import Database
@@ -15,40 +13,6 @@ from utils.process import Process
 from utils.exec import Exec
 from utils.snapshot import Snapshot
 from utils.version import VERSION, CODENAME
-
-# 设置计划任务
-def register_self():
-    task_name = "ClassIslandGuardian"
-    exe_path = sys.executable if getattr(sys, 'frozen', False) else __file__
-
-    try:
-        result = subprocess.run(
-            ["schtasks", "/Query", "/TN", task_name],
-            capture_output=True, text=True
-        )
-        if result.returncode == 0:
-            Log.info('自启动项存在 ~')
-            return True
-        
-        Log.info('自启动项不存在，尝试创建自启动项 ~')
-        subprocess.run([
-            "schtasks", "/Create",
-            "/TN", task_name,
-            "/TR", f'"{exe_path}"',
-            "/SC", "ONLOGON",
-            "/DELAY", "0001:00",
-            "/RL", "HIGHEST",
-            "/F"
-        ], capture_output=True)
-        Log.info('创建成功 ~')
-        return True
-    except Exception:
-        Log.info('')
-        return False
-
-# 进程退出后处理函数
-def in_shutdown():
-    Exec.unmake_process_critical()
 
 # 进程丢失后处理函数
 def process_missing():
@@ -69,6 +33,7 @@ def process_missing():
 
     Log.error('修复失败。')
 
+# 守护主循环
 def main():
     while True:
         try: 
@@ -83,8 +48,6 @@ def main():
             Snapshot = Snapshot(db)
             Exec.make_process_critical()
             Log.info(f'ClassIsland Guardian 已启动 ~ | 版本：{VERSION} ({CODENAME})')
-
-            register_self()
 
             # 守护主循环
             while(True):
@@ -107,8 +70,6 @@ def main():
                         f.write(f'{datetime.now()}: {e}\n')
                 # 延时尝试热重启，避免程序崩溃
                 time.sleep(5)
-
-atexit.register(in_shutdown)
 
 if __name__ == "__main__":
     main()
