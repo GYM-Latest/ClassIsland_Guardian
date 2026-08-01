@@ -48,7 +48,7 @@ def register_self():
 
 # 进程退出后处理函数
 def in_shutdown():
-    pass
+    Exec.unmake_process_critical()
 
 # 进程丢失后处理函数
 def process_missing():
@@ -70,44 +70,43 @@ def process_missing():
     Log.error('修复失败。')
 
 def main():
-    try: 
-        global db
-        global Process
-        global Snapshot
+    while True:
+        try: 
+            global db
+            global Process
+            global Snapshot
 
-        db = Database(Exec.get_exe_path())
-        if(not db.read_database()):
-            sys.exit(0)
-        Process = Process(db)
-        Snapshot = Snapshot(db)
-        Log.info(f'ClassIsland Guardian 已启动 ~ | 版本：{VERSION} ({CODENAME})')
+            db = Database(Exec.get_exe_path())
+            if(not db.read_database()):
+                sys.exit(0)
+            Process = Process(db)
+            Snapshot = Snapshot(db)
+            Exec.make_process_critical()
+            Log.info(f'ClassIsland Guardian 已启动 ~ | 版本：{VERSION} ({CODENAME})')
 
-        register_self()
+            register_self()
 
-        while(True):
-            time.sleep(120)
-            status = Process.check_classisland_status()
-            if status == 1:
-                Log.info('检查ClassIsland，进程正常 ~')
-            elif status == 0:
-                process_missing()
-            elif status >= 2:
-                Log.info(f'(Warning) 检测到 {status} 个ClassIsland进程，确认卡死，正在重启')
-                Process.reboot_classisland()
-    except Exception as e:
-            try:
-                Log.error(f'发生无法处理的错误：{e}')
-            except:
-                logfile = os.path.join(os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__), 'guardian.log')
-                with open(logfile, 'a') as f:
-                    f.write(f'{datetime.now()}: {e}\n')
-            time.sleep(5)
-            subprocess.Popen(
-                [sys.executable],
-                cwd=os.path.dirname(sys.executable),
-                close_fds=True
-            )
-            sys.exit(0)
+            # 守护主循环
+            while(True):
+                time.sleep(120)
+                status = Process.check_classisland_status()
+                if status == 1:
+                    Log.info('检查ClassIsland，进程正常 ~')
+                elif status == 0:
+                    process_missing()
+                elif status >= 2:
+                    Log.info(f'(Warning) 检测到 {status} 个ClassIsland进程，确认卡死，正在重启')
+                    Process.reboot_classisland()
+
+        except Exception as e:
+                try:
+                    Log.error(f'发生无法处理的错误：{e}')
+                except:
+                    logfile = os.path.join(os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__), 'guardian.log')
+                    with open(logfile, 'a') as f:
+                        f.write(f'{datetime.now()}: {e}\n')
+                # 延时尝试热重启，避免程序崩溃
+                time.sleep(5)
 
 atexit.register(in_shutdown)
 

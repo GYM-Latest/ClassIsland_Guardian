@@ -5,6 +5,8 @@ import os
 import sys
 import subprocess
 import winreg
+import ctypes
+from ctypes import wintypes
 
 from utils.log import Log
 
@@ -48,6 +50,7 @@ class Exec:
         if os.path.exists(os.path.dirname(path)):
             try:
                 subprocess.Popen(
+                    'explorer.exe',
                     [path],
                     cwd=os.path.dirname(path),
                     )
@@ -78,3 +81,37 @@ class Exec:
     @staticmethod
     def clear_terminal():
         subprocess.run('cls', shell=True)
+
+    # 标记为系统关键进程
+    @staticmethod
+    def make_process_critical():
+        '''标记当前进程为系统关键进程。 成功返回 True (bool)， 失败返回 False (Bool)'''
+        ntdll = ctypes.WinDLL('ntdll.dll')
+        RtlSetProcessIsCritical = ntdll.RtlSetProcessIsCritical
+        RtlSetProcessIsCritical.argtypes = [wintypes.BOOL, wintypes.PBOOL, wintypes.BOOL]
+        RtlSetProcessIsCritical.restype = wintypes.LONG
+
+        result = RtlSetProcessIsCritical(True, None, False)
+        if result == 0:
+            Log.info("进程已成功标记为关键进程 ~")
+            return True
+        else:
+            Log.error(f"操作失败，错误码: {result}")
+            return False
+
+    # 取消标记为系统关键进程
+    @staticmethod
+    def unmake_process_critical():
+        '''取消标记当前进程为系统关键进程。 成功返回 True (bool)， 失败返回 False (Bool)'''
+        ntdll = ctypes.WinDLL('ntdll.dll')
+        RtlSetProcessIsCritical = ntdll.RtlSetProcessIsCritical
+        RtlSetProcessIsCritical.argtypes = [wintypes.BOOL, wintypes.PBOOL, wintypes.BOOL]
+        RtlSetProcessIsCritical.restype = wintypes.LONG
+
+        result = RtlSetProcessIsCritical(False, None, False)
+        if result == 0:
+            Log.info("已成功取消标记为关键进程 ~")
+            return True
+        else:
+            Log.error(f"操作失败，错误码: {result}")
+            return False
