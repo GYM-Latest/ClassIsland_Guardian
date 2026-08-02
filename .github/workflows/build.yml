@@ -19,9 +19,9 @@ jobs:
 
             - name: Build Python Executable
               run: |
-                pyinstaller --distpath app\appdata -w -n guardian src\guardian.py
-                pyinstaller --distpath app\appdata -w -n config src\config.py
-                pyinstaller --distpath app -n setup src\setup.py
+                pyinstaller --distpath temp -w -f -n guardian src\guardian.py
+                pyinstaller --distpath temp -w -f -n config src\config.py
+                pyinstaller --distpath temp -f -n setup src\setup.py
 
             - name: Add MSBuild to PATH
               uses: microsoft/setup-msbuild@v2
@@ -32,17 +32,21 @@ jobs:
             - name: Build launcher Executable
               run: msbuild launcher\launcher.slnx /p:Configuration=Release /p:Platform="Any CPU"
 
-            - name: Create ZIP Archive
+            - name: Create App Directory
               run: |
-                if not exist app\drivers mkdir app\drivers
-                if not exist app\appdata mkdir app\appdata
-                move /y drivers\x64\Release\*.sys app\drivers\
+                mkdir app
+                mkdir app\drivers
+                mkdir app\appdata
+                copy /y temp\guardian\guardian.exe app\appdata\
+                copy /y temp\config\config.exe app\appdata\
+                copy /y temp\setup\setup.exe app
+                copy /y drivers\x64\Release\*.sys app\drivers\
                 copy /y launcher\bin\Release\launcher.exe app\appdata\
-                powershell Compress-Archive -Path app\* -DestinationPath build.zip
               shell: cmd
+
             
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
               with:
                   name: build-artifact
-                  path: build.zip
+                  path: app
