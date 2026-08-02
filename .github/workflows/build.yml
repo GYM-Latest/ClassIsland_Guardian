@@ -4,7 +4,7 @@ on:
 
 jobs:
     build:
-        runs-on: windows-latest
+        runs-on: windows-2022
         steps:
             - name: Checkout Code
               uses: actions/checkout@v4
@@ -12,7 +12,7 @@ jobs:
             - name: Setup Python
               uses: actions/setup-python@v5
               with:
-                  python-version: '3.14'
+                  python-version: '3.12'
             
             - name: Install dependencies
               run: pip install pyinstaller && pip install -r src\requirements.txt
@@ -22,12 +22,6 @@ jobs:
                 pyinstaller --distpath app\appdata -w -n guardian src\guardian.py
                 pyinstaller --distpath app\appdata -w -n config src\config.py
                 pyinstaller --distpath app -n setup src\setup.py
-
-            - name: Install WDK (VS Component)
-              run: |
-                $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
-                & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath $vs --add Microsoft.VisualStudio.Component.WDK --passive --norestart
-              shell: powershell
 
             - name: Add MSBuild to PATH
               uses: microsoft/setup-msbuild@v2
