@@ -27,31 +27,16 @@ jobs:
               uses: microsoft/setup-msbuild@v2
             
             - name: Build Driver Executable
-              run: msbuild drivers\drivers.slnx /p:Configuration=Release /p:Platform=x64 /p:OutputPath=app\drivers
-
-            - name: Create test certificate
-              run: |
-                $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Guardian Test" -CertStoreLocation Cert:\CurrentUser\My
-                Export-Certificate -Cert $cert -FilePath guardian_test.cer
-              shell: powershell
-
-            - name: Sign executables
-              run: |
-                for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set VS=%%i
-                call "%VS%\Common7\Tools\VsDevCmd.bat" -arch=x64
-                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\appdata\guardian\guardian.exe
-                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\appdata\config\config.exe
-                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\setup\setup.exe
-                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\drivers\file.sys
-                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\drivers\process.sys
-                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\drivers\registry.sys
-              shell: cmd
+              run: msbuild drivers\drivers.slnx /p:Configuration=Release /p:Platform=x64
 
             - name: Build launcher Executable
               run: msbuild launcher\launcher.slnx /p:Configuration=Release /p:Platform=x64 /p:OutputPath=app\appdata
 
             - name: Create ZIP Archive
-              run: powershell Compress-Archive -Path app\* -DestinationPath build.zip
+              run: |
+                copy drivers\x64\Release\*.sys app\drivers\
+                powershell Compress-Archive -Path app\* -DestinationPath build.zip
+              shell: cmd
             
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
