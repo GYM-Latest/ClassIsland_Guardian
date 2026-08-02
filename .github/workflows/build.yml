@@ -37,9 +37,9 @@ jobs:
                 mkdir app
                 mkdir app\drivers
                 mkdir app\appdata
-                copy /y temp\guardian\guardian.exe app\appdata\
-                copy /y temp\config\config.exe app\appdata\
-                copy /y temp\setup\setup.exe app
+                copy /y temp\guardian.exe app\appdata\
+                copy /y temp\config.exe app\appdata\
+                copy /y temp\setup.exe app
                 copy /y drivers\x64\Release\*.sys app\drivers\
                 copy /y launcher\bin\Release\launcher.exe app\appdata\
               shell: cmd
