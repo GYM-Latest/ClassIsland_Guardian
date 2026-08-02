@@ -5,6 +5,8 @@ import os
 import time
 import sys
 from datetime import datetime
+import psutil
+import threading
 import utils.win_graceful_shutdown
 
 from utils.log import Log
@@ -18,7 +20,7 @@ from utils.version import VERSION, CODENAME
 def process_missing():
     if Process.start_classisland():
         Log.warn('尝试拉起ClassIsland。')
-        time.sleep(30)
+        time.sleep(5)
         status = Process.check_classisland_status()
         if status == 1:
             Log.info('拉起成功，ClassIsland进程正常 ~')
@@ -32,6 +34,56 @@ def process_missing():
             return
 
     Log.error('修复失败。')
+
+# 120s轮询线程
+def poll_thread():
+    try:
+        while(True):
+            time.sleep(120)
+            status = Process.check_classisland_status()
+            if status == 1:
+                Log.info('检查ClassIsland，进程正常 ~')
+            elif status == 0:
+                process_missing()
+            elif status >= 2:
+                Log.info(f'(Warning) 检测到 {status} 个ClassIsland进程，确认卡死，正在重启')
+                Process.reboot_classisland()
+
+    except Exception as e:
+        try:
+            Log.error(f'发生无法处理的错误：{e}')
+        except:
+            logfile = os.path.join(os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__), 'guardian.log')
+            with open(logfile, 'a') as f:
+                f.write(f'{datetime.now()}: {e}\n')
+        # 延时尝试热重启，避免程序崩溃
+        time.sleep(5)
+        main()
+        return
+
+# 监控线程
+def monitor_thread():
+    try:
+        while True:
+            time.sleep(10)
+            result = Process.find_classisland_pid()
+            if(result):
+                psutil.Process(result).wait()
+                process_missing()
+            else:
+                process_missing()
+
+    except Exception as e:
+        try:
+            Log.error(f'发生无法处理的错误：{e}')
+        except:
+            logfile = os.path.join(os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__), 'guardian.log')
+            with open(logfile, 'a') as f:
+                f.write(f'{datetime.now()}: {e}\n')
+        # 延时尝试热重启，避免程序崩溃
+        time.sleep(5)
+        main()
+        return
 
 # 守护主循环
 def main():
@@ -50,17 +102,10 @@ def main():
             Log.info(f'ClassIsland Guardian 已启动 ~ | 版本：{VERSION} ({CODENAME})')
 
             # 守护主循环
-            while(True):
-                time.sleep(120)
-                status = Process.check_classisland_status()
-                if status == 1:
-                    Log.info('检查ClassIsland，进程正常 ~')
-                elif status == 0:
-                    process_missing()
-                elif status >= 2:
-                    Log.info(f'(Warning) 检测到 {status} 个ClassIsland进程，确认卡死，正在重启')
-                    Process.reboot_classisland()
-
+            threading.Thread(target=poll_thread, daemon=False).start()
+            threading.Thread(target=monitor_thread, daemon=False).start()
+            return
+        
         except Exception as e:
                 try:
                     Log.error(f'发生无法处理的错误：{e}')

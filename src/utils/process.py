@@ -20,7 +20,16 @@ class Process:
             if proc.info['name'] == self.db.path.get('classisland_process_name'):
                 process_quantity += 1; 
         return process_quantity
-    
+
+    # 查找ClassIsland进程pid并返回
+    def find_classisland_pid(self):
+        '查找ClassIsland进程pid。 返回Classisland进程pid(string)，若未找到，返回False(bool)'
+        for proc in psutil.process_iter(['name', 'pid']):
+            if proc.info['name'] == self.db.path.get('classisland_process_name'):
+                classisland_process_pid = proc.info['pid']
+                return classisland_process_pid
+        return False
+
     # 启动ClassIsland
     def start_classisland(self):
         '启动Classisland。 成功返回True，失败返回False'
