@@ -5,6 +5,8 @@ __pycache__/
 build/
 dist/
 *.spec
+build_temp/
+app/
 
 *.log
 *.wim
