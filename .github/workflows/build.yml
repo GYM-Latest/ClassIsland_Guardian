@@ -20,7 +20,7 @@ jobs:
             - name: Build Python Executable
               run: |
                 pyinstaller --distpath temp -w -F -n guardian src\guardian.py
-                pyinstaller --distpath temp -F -n config src\config.py
+                pyinstaller --distpath temp -F --copy-metadata readchar -n config src\config.py
                 pyinstaller --distpath temp -F -n setup src\setup.py
 
             - name: Add MSBuild to PATH
