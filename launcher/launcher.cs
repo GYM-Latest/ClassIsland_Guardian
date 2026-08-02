@@ -4,14 +4,14 @@ using System.Threading;
 
 namespace launcher
 {
-    public partial class guardian : ServiceBase
+    public partial class launcher : ServiceBase
     {
         static void Main()
         {
-            ServiceBase.Run(new guardian());
+            ServiceBase.Run(new launcher());
         }
 
-        public guardian()
+        public launcher()
         {
             InitializeComponent();
         }
@@ -39,15 +39,20 @@ namespace launcher
                         ProcessExtensions.StartProcessAsCurrentUser(path);
                         break;
                     }
-                    catch { Thread.Sleep(5000); }
+                    catch {
+                        Thread.Sleep(5000);
+                    }
                 }
 
                 // 盯着 guardian，退了就重新拉
                 while (true)
                 {
                     var procs = System.Diagnostics.Process.GetProcessesByName("guardian");
-                    if (procs.Length == 0) break;
-                    Thread.Sleep(10000); // 每10秒查一次
+                    if (procs.Length == 0)
+                    {
+                        break;
+                    }
+                    Thread.Sleep(10000); 
                 }
             }
         }

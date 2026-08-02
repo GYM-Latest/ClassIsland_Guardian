@@ -67,16 +67,16 @@ NTSTATUS DriverEntry(
         g_configExePath.MaximumLength = (USHORT)sizeof(L"\\DEVICE\\HARDDISKVOLUME*\\PROGRAM FILES\\GUARDIAN\\CONFIG.EXE");
     }
 
-    // guardianRegPath
+    // launcherRegPath
     buffer = (PWCHAR)ExAllocatePool2(POOL_FLAG_NON_PAGED,
-        sizeof(L"\\REGISTRY\\MACHINE\\SYSTEM\\*\\SERVICES\\GUARDIAN*"),
+        sizeof(L"\\REGISTRY\\MACHINE\\SYSTEM\\*\\SERVICES\\LAUNCHER*"),
         'CIGR');
     if (buffer) {
-        RtlCopyMemory(buffer, L"\\REGISTRY\\MACHINE\\SYSTEM\\*\\SERVICES\\GUARDIAN*",
-            sizeof(L"\\REGISTRY\\MACHINE\\SYSTEM\\*\\SERVICES\\GUARDIAN*"));
+        RtlCopyMemory(buffer, L"\\REGISTRY\\MACHINE\\SYSTEM\\*\\SERVICES\\LAUNCHER*",
+            sizeof(L"\\REGISTRY\\MACHINE\\SYSTEM\\*\\SERVICES\\LAUNCHER*"));
         g_guardianRegPath.Buffer = buffer;
-        g_guardianRegPath.Length = (USHORT)(sizeof(L"\\REGISTRY\\MACHINE\\SYSTEM\\*\\SERVICES\\GUARDIAN*") - sizeof(WCHAR));
-        g_guardianRegPath.MaximumLength = (USHORT)sizeof(L"\\REGISTRY\\MACHINE\\SYSTEM\\*\\SERVICES\\GUARDIAN*");
+        g_guardianRegPath.Length = (USHORT)(sizeof(L"\\REGISTRY\\MACHINE\\SYSTEM\\*\\SERVICES\\LAUNCHER*") - sizeof(WCHAR));
+        g_guardianRegPath.MaximumLength = (USHORT)sizeof(L"\\REGISTRY\\MACHINE\\SYSTEM\\*\\SERVICES\\LAUNCHER*");
     }
 
     // fileRegPath

@@ -119,12 +119,19 @@ def install():
     print(f'registry.sys 已就绪 ~')
 
     # 注册 guardian 守护进程服务
-    guardian_exe = os.path.join(guardian_dir, 'guardian.exe')
-    if os.path.exists(guardian_exe):
+    launcher_exe_path = os.path.join(guardian_dir, 'launcher.exe')
+    if os.path.exists(launcher_exe_path):
         # Belike 无保护单兵突入大气层
-        subprocess.run(['sc', 'create', 'guardian', 'type=', 'own', 'start=', 'auto', 'binPath=', guardian_exe], capture_output=True)
-        subprocess.run(['sc', 'config', 'guardian', 'error=', 'critical'], capture_output=True, check=False)
-        subprocess.run(['sc', 'failure', 'guardian', 'reset=', '0', 'actions=', 'reboot/0'], capture_output=True, text=True)
+        subprocess.run(['sc', 'create', 'launcher', 
+                        'type=', 'own', 
+                        'start=', 'auto', 
+                        'binPath=', launcher_exe_path, 
+                        'error=', 'critical'],
+                          capture_output=True)
+        subprocess.run(['sc', 'failure', 'launcher', 
+                        'reset=', '0', 
+                        'actions=', 'reboot/0'],
+                          capture_output=True, text=True)
         print(f'guardian 已就绪 ~')
 
     # 创建首个快照
