@@ -50,7 +50,7 @@ class Exec:
         if os.path.exists(os.path.dirname(path)):
             try:
                 subprocess.Popen(
-                    ['explorer.exe', path],
+                    [path],
                     cwd=os.path.dirname(path),
                     )
                 return True
