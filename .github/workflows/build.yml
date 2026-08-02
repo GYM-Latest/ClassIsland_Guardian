@@ -1,0 +1,60 @@
+name: Build ClassIsland Guardian
+on:
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: windows-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: '3.14'
+            
+            - name: Install dependencies
+              run: pip install pyinstaller && pip install -r src\requirements.txt
+
+            - name: Build Python Executable
+              run: |
+                pyinstaller --distpath app\appdata -w -n guardian src\guardian.py
+                pyinstaller --distpath app\appdata -w -n config src\config.py
+                pyinstaller --distpath app -n setup src\setup.py
+
+            - name: Install WDK (VS Component)
+              run: |
+                for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set VS=%%i
+                "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "%VS%" --add Microsoft.VisualStudio.Component.WDK --passive --norestart --quiet
+              shell: cmd
+
+            - name: Add MSBuild to PATH
+              uses: microsoft/setup-msbuild@v2
+            
+            - name: Build Driver Executable
+              run: msbuild drivers\drivers.slnx /p:Configuration=Release /p:Platform=x64 /p:OutputPath=app\drivers
+
+            - name: Create test certificate
+              run: |
+                $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Guardian Test" -CertStoreLocation Cert:\CurrentUser\My
+                Export-Certificate -Cert $cert -FilePath guardian_test.cer
+              shell: powershell
+
+            - name: Sign executables
+              run: |
+                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\appdata\*.exe
+                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\drivers\*.sys
+              shell: cmd
+
+            - name: Build launcher Executable
+              run: msbuild launcher\launcher.slnx /p:Configuration=Release /p:Platform=x64 /p:OutputPath=app\appdata
+
+            - name: Create ZIP Archive
+              run: powershell Compress-Archive -Path app\* -DestinationPath build.zip
+            
+            - name: Upload Build Artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: build-artifact
+                  path: build.zip
