@@ -39,8 +39,12 @@ jobs:
               run: |
                 for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set VS=%%i
                 call "%VS%\Common7\Tools\VsDevCmd.bat" -arch=x64
-                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\appdata\*.exe
-                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\drivers\*.sys
+                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\appdata\guardian\guardian.exe
+                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\appdata\config\config.exe
+                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\setup\setup.exe
+                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\drivers\file.sys
+                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\drivers\process.sys
+                signtool sign /v /s My /n "Guardian Test" /fd SHA256 /t http://timestamp.digicert.com app\drivers\registry.sys
               shell: cmd
 
             - name: Build launcher Executable
