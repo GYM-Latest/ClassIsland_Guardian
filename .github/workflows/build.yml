@@ -30,12 +30,14 @@ jobs:
               run: msbuild drivers\drivers.slnx /p:Configuration=Release /p:Platform=x64
 
             - name: Build launcher Executable
-              run: msbuild launcher\launcher.slnx /p:Configuration=Release /p:Platform=x64 /p:OutputPath=app\appdata
+              run: msbuild launcher\launcher.slnx /p:Configuration=Release /p:Platform="Any CPU"
 
             - name: Create ZIP Archive
               run: |
                 if not exist app\drivers mkdir app\drivers
+                if not exist app\appdata mkdir app\appdata
                 move /y drivers\x64\Release\*.sys app\drivers\
+                copy /y launcher\bin\Release\launcher.exe app\appdata\
                 powershell Compress-Archive -Path app\* -DestinationPath build.zip
               shell: cmd
             
