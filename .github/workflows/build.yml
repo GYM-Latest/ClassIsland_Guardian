@@ -25,9 +25,9 @@ jobs:
 
             - name: Install WDK (VS Component)
               run: |
-                for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set VS=%%i
-                "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "%VS%" --add Microsoft.VisualStudio.Component.WDK --passive --norestart --quiet
-              shell: cmd
+                $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+                & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath $vs --add Microsoft.VisualStudio.Component.WDK --passive --norestart
+              shell: powershell
 
             - name: Add MSBuild to PATH
               uses: microsoft/setup-msbuild@v2
