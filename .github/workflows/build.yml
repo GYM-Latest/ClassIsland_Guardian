@@ -34,7 +34,8 @@ jobs:
 
             - name: Create ZIP Archive
               run: |
-                copy drivers\x64\Release\*.sys app\drivers\
+                if not exist app\drivers mkdir app\drivers
+                copy /y drivers\x64\Release\*.sys app\drivers\
                 powershell Compress-Archive -Path app\* -DestinationPath build.zip
               shell: cmd
             
