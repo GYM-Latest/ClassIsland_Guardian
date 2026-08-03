@@ -36,14 +36,14 @@ namespace launcher
                     {
                         string dir  = System.AppDomain.CurrentDomain.BaseDirectory;
                         string path = System.IO.Path.Combine(dir, "guardian.exe");
-                        ProcessExtensions.StartProcessAsCurrentUser(path);
+                        ProcessExtensions.StartProcessAsCurrentUser(path, visible: false);
                         break;
                     }
                     catch {
                         Thread.Sleep(5000);
                     }
                 }
-
+                Thread.Sleep(5000);
                 // 盯着 guardian，退了就重新拉
                 while (true)
                 {
