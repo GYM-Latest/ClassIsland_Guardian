@@ -24,9 +24,6 @@ class config():
         self.classisland_path = None
         self.guardian_path = None
         self.password = ''
-        self.is_process_protect = False
-        self.is_prevent_deletion_protect = False
-        self.is_prestart = False
 
 def find_classisland():
     '''寻找 ClassIsland 的安装路径。 返回 ClassIsland 的安装路径(String)'''
@@ -66,9 +63,6 @@ def install():
         'classisland_path': config.classisland_path,
         'guardian_path': guardian_dir,
         'password': hashlib.sha256(config.password.encode('utf-8')).hexdigest() if config.password else '',
-        'is_process_protect': config.is_process_protect,
-        'is_prestart': config.is_prestart,
-        'is_prevent_deletion_protect': config.is_prevent_deletion_protect,
     })
     print(f'配置文件已生成 ~\n')
 

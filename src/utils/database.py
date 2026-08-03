@@ -1,17 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 GYM_Latest
 
-import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
 import os
-import shutil
-import hashlib
-import secrets
 import sqlite3
-from datetime import datetime
-import time
-import getpass
-import sys
+
 from .log import Log
 
 # 封装数据库方法
@@ -60,34 +52,26 @@ class Database:
                         id INTEGER PRIMARY KEY,
                         classisland_path TEXT,
                         classisland_process_name TEXT DEFAULT 'ClassIsland.Desktop.exe',
-                        classisland_launcher_name TEXT DEFAULT 'ClassIsland.exe',
-                        guardian_path TEXT         
+                        classisland_launcher_name TEXT DEFAULT 'ClassIsland.exe'      
                                 );
                     CREATE TABLE IF NOT EXISTS config(
                         id INTEGER PRIMARY KEY,
-                        password TEXT,
-                        is_process_protect INTEGER,
-                        is_prestart INTEGER,
-                        is_prevent_deletion_protect INTEGER
+                        password TEXT
                                 );
                             ''')
                 cursor.execute('''
-                    INSERT OR REPLACE INTO paths (id, classisland_path, classisland_process_name, classisland_launcher_name, guardian_path)
-                        VALUES (1, ?, ?, ?, ?)
+                    INSERT OR REPLACE INTO paths (id, classisland_path, classisland_process_name, classisland_launcher_name)
+                        VALUES (1, ?, ?, ?)
                 ''', (
                 config_data.get('classisland_path', r'D:\ClassIsland'),
                 config_data.get('classisland_process_name', 'ClassIsland.Desktop.exe'),
                 config_data.get('classisland_launcher_name', 'ClassIsland.exe'),
-                config_data.get('guardian_path')
                 ))
                 cursor.execute('''
-                    INSERT OR REPLACE INTO config (id, password, is_process_protect, is_prestart, is_prevent_deletion_protect)
-                        VALUES (1, ?, ?, ?, ?)
+                    INSERT OR REPLACE INTO config (id, password)
+                        VALUES (1, ?)
                 ''', (
-                config_data.get('password', ''),
-                1 if config_data.get('is_process_protect', False) else 0,
-                1 if config_data.get('is_prestart', False) else 0,
-                1 if config_data.get('is_prevent_deletion_protect', False) else 0
+                config_data.get('password', '')
                 ))
                 conn.commit()
                 return self.database_path
