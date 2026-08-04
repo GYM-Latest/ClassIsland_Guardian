@@ -71,7 +71,7 @@ class Database:
                     INSERT OR REPLACE INTO config (id, password)
                         VALUES (1, ?)
                 ''', (
-                config_data.get('password', '')
+                config_data.get('password', ''),
                 ))
                 conn.commit()
                 return self.database_path
