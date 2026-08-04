@@ -187,12 +187,13 @@ def main():
 
     # 获取 GuardianRecovery 路径
     guardianrecovery_path = _find_guardianrecovery_path()
+    if(not guardianrecovery_path):
+        Log.error('未找到可用的恢复环境。程序将会退出。')
+        time.sleep(2)
+        sys.exit(0)
     Log.logfile = os.path.join(guardianrecovery_path,'recovery.log')
     Exec.clear_terminal()
     Log.info('正在初始化预启动修复恢复环境...')
-    if(not guardianrecovery_path):
-        Log.error('未找到可用的恢复环境。程序将会退出。')
-        sys.exit(0)
     Log.info(f'寻找到了可用的恢复环境：{guardianrecovery_path}')
     guardianrecovery_device, _ = os.path.splitdrive(guardianrecovery_path)
     guardian_path = os.path.join(guardianrecovery_device, "Program Files", "Guardian")
