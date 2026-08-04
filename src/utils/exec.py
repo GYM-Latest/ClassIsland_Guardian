@@ -6,6 +6,7 @@ import sys
 import subprocess
 import winreg
 import ctypes
+import psutil
 from ctypes import wintypes
 
 from utils.log import Log
@@ -64,17 +65,15 @@ class Exec:
     # 结束指定进程
     @staticmethod
     def kill_process(name):
-        '结束指定进程。 传入要结束的进程名(string)。 成功返回True，失败返回False'
-        result = subprocess.run(
-        ["TASKKILL", "/F", "/IM", name],
-        creationflags=subprocess.CREATE_NO_WINDOW,
-        capture_output=True
-        )
-
-        if result.returncode == 0 or result.returncode == 128:
-            return True
-        else:
-            return False
+        '结束指定进程。 传入要结束的进程名(string)。 成功返回True'
+        for proc in psutil.process_iter(['name']):
+            if proc.info['name'] == name:
+                try:
+                    proc.kill()
+                except psutil.NoSuchProcess:
+                    pass
+        return True
+            
 
     # 清空控制台
     @staticmethod
