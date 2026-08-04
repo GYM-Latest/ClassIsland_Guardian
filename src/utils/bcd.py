@@ -4,7 +4,7 @@ import os
 
 from utils.log import Log
 
-class bcd:
+class Bcd:
     @staticmethod
     def _find_recovery_guid():
         '''查找 ClassIsland Guardian Recovery BCD启动项对应的 GUID。 成功返回GUID(String)，失败返回False'''
@@ -95,7 +95,7 @@ class bcd:
     def set_recovery_bcd_startonce():
         '''设置下次启动从 Recovery 环境启动。 成功返回 True ，失败返回 False'''
         try:
-            recovery_guid = bcd._find_recovery_guid()
+            recovery_guid = Bcd._find_recovery_guid()
             if(not recovery_guid):
                 return False
             subprocess.run(['bcdedit', '/bootsequence', recovery_guid], check=True)
@@ -108,7 +108,7 @@ class bcd:
     def set_recovery_bcd_start():
         '''设置默认启动项为 Recovery 环境。 成功返回 True ，失败返回 False'''
         try:
-            recovery_guid = bcd._find_recovery_guid()
+            recovery_guid = Bcd._find_recovery_guid()
             if(not recovery_guid):
                 return False
             subprocess.run(['bcdedit', '/default', recovery_guid], check=True)
@@ -121,7 +121,7 @@ class bcd:
     def set_windows_bcd_startonce():
         '''设置下次启动从 Windows 环境启动。 成功返回 True ，失败返回 False'''
         try:
-            windows_guid = bcd._find_windows_guid()
+            windows_guid = Bcd._find_windows_guid()
             if(not windows_guid):
                 return False
             subprocess.run(['bcdedit', '/bootsequence', windows_guid], check=True)
@@ -134,7 +134,7 @@ class bcd:
     def set_windows_bcd_start():
         '''设置默认启动项为 Windows 环境。 成功返回 True ，失败返回 False'''
         try:
-            windows_guid = bcd._find_windows_guid()
+            windows_guid = Bcd._find_windows_guid()
             if(not windows_guid):
                 return False
             subprocess.run(['bcdedit', '/default', windows_guid], check=True)
