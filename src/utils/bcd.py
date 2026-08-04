@@ -58,7 +58,7 @@ class Bcd:
 
     @staticmethod
     def create_recovery_bcd():
-        '''为 guardian\\recovery.wim 创建 BCD 启动项。 成功返回对应启动项的GUID(String)，失败返回 False '''
+        '''为 GuardianRecovery\\recovery.wim 创建 BCD 启动项。 成功返回对应启动项的GUID(String)，失败返回 False '''
         try:
             system_device = os.environ.get('SystemDrive', 'C:')
             # 复制现有启动项

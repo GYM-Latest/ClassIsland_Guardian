@@ -17,6 +17,7 @@ import winreg
 from utils.database import Database
 from utils.exec import Exec
 from utils.snapshot import Snapshot
+from utils.bcd import Bcd
 from utils.version import VERSION , CODENAME
 
 class config():
@@ -36,6 +37,10 @@ def find_classisland():
     return None
 
 def install():
+    def _copy_and_log(src, dst):
+            print(f'正在安装：{dst}')
+            shutil.copy2(src, dst)
+
     Exec.clear_terminal()
 
     print('将在倒计时结束后开始安装 ~')
@@ -74,26 +79,23 @@ def install():
     print(f'配置文件已生成 ~\n')
 
     # 复制 guardian 目录
-    def copy_and_log(src, dst):
-        print(f'正在安装：{dst}')
-        shutil.copy2(src, dst)
     shutil.copytree(
         os.path.join(Exec.get_exe_path(), 'appdata'),
         guardian_path,
-        copy_function=copy_and_log,
+        copy_function=_copy_and_log,
         dirs_exist_ok=True
     )
     # 复制 GuardianRecovery\stable
     shutil.copytree(
         os.path.join(Exec.get_exe_path(), 'appdata'),
         os.path.join(recovery_path, 'stable', 'appdata'),
-        copy_function=copy_and_log,
+        copy_function=_copy_and_log,
         dirs_exist_ok=True
     )
     shutil.copytree(
             os.path.join(Exec.get_exe_path(), 'drivers'),
             os.path.join(recovery_path, 'stable', 'drivers'),
-            copy_function=copy_and_log,
+            copy_function=_copy_and_log,
             dirs_exist_ok=True
         )
     # 复制并注册内核驱动
@@ -143,6 +145,10 @@ def install():
     snapshot = Snapshot(db)
     snapshot.snapshot_path = os.path.join(guardian_path, 'data', 'snapshot')
     print(f'创建了首个快照：{snapshot.create_snapshot()} ~')
+
+    # 创建预启动修复环境
+    shutil.copy2(os.path.join(Exec.get_exe_path(), 'recovery', 'recovery.wim'), os.path.join(recovery_path, 'recovery.wim'))
+    Bcd.create_recovery_bcd()
 
     print(f'安装完成，重启后生效 ~')
 
