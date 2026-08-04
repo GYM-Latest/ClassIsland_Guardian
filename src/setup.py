@@ -49,19 +49,26 @@ def install():
     Exec.kill_process('ClassIsland.Desktop.exe')
 
     # 创建目录
-    recovery_dir = os.path.join(os.environ.get('SystemDrive', 'C:') + '\\', 'GuardianRecovery')
-    guardian_dir = os.path.join(os.environ.get('ProgramFiles', r'C:\Program Files'), 'Guardian')
+    recovery_path = os.path.join(os.environ.get('SystemDrive', 'C:') + '\\', 'GuardianRecovery')
+    guardian_path = os.path.join(os.environ.get('ProgramFiles', r'C:\Program Files'), 'Guardian')
 
-    if not os.path.exists(recovery_dir):
-        os.makedirs(recovery_dir)
-        print(f'已创建 {recovery_dir} ~')
+    if not os.path.exists(recovery_path):
+        os.makedirs(recovery_path)
+        print(f'已创建 {recovery_path} ~')
 
     # 生成配置文件
-    os.makedirs(os.path.join(guardian_dir, 'data'), exist_ok=True)
-    db = Database(guardian_dir)
+    os.makedirs(os.path.join(guardian_path, 'data'), exist_ok=True)
+    db = Database(guardian_path)
     db.new_database({
         'classisland_path': config.classisland_path,
-        'guardian_path': guardian_dir,
+        'guardian_path': guardian_path,
+        'password': hashlib.sha256(config.password.encode('utf-8')).hexdigest() if config.password else '',
+    })
+    os.makedirs(os.path.join(recovery_path, 'data'), exist_ok=True)
+    db = Database(recovery_path)
+    db.new_database({
+        'classisland_path': config.classisland_path,
+        'guardian_path': guardian_path,
         'password': hashlib.sha256(config.password.encode('utf-8')).hexdigest() if config.password else '',
     })
     print(f'配置文件已生成 ~\n')
@@ -72,20 +79,23 @@ def install():
         shutil.copy2(src, dst)
     shutil.copytree(
         os.path.join(Exec.get_exe_path(), 'appdata'),
-        guardian_dir,
+        guardian_path,
         copy_function=copy_and_log,
         dirs_exist_ok=True
     )
     # 复制 GuardianRecovery\stable
-    def copy_and_log(src, dst):
-            print(f'正在安装：{dst}')
-            shutil.copy2(src, dst)
     shutil.copytree(
         os.path.join(Exec.get_exe_path(), 'appdata'),
-        os.path.join(recovery_dir, 'stable'),
+        os.path.join(recovery_path, 'stable', 'appdata'),
         copy_function=copy_and_log,
         dirs_exist_ok=True
     )
+    shutil.copytree(
+            os.path.join(Exec.get_exe_path(), 'drivers'),
+            os.path.join(recovery_path, 'stable', 'drivers'),
+            copy_function=copy_and_log,
+            dirs_exist_ok=True
+        )
     # 复制并注册内核驱动
     src_drivers = os.path.join(Exec.get_exe_path(), 'drivers')
     sys_dir = os.path.join(os.environ.get('SystemRoot', r'C:\Windows'), 'System32', 'drivers')
@@ -113,7 +123,7 @@ def install():
     print(f'registry.sys 已就绪 ~')
 
     # 注册 guardian 守护进程服务
-    launcher_exe_path = os.path.join(guardian_dir, 'launcher.exe')
+    launcher_exe_path = os.path.join(guardian_path, 'launcher.exe')
     if os.path.exists(launcher_exe_path):
         # Belike 无保护单兵突入大气层
         subprocess.run(['sc', 'create', 'launcher', 
@@ -127,11 +137,11 @@ def install():
                         'actions=', 'reboot/0'],
                           capture_output=True, text=True)
         print(f'guardian 已就绪 ~')
-
+    
     # 创建首个快照
     db.read_database()
     snapshot = Snapshot(db)
-    snapshot.snapshot_dir = os.path.join(guardian_dir, 'data', 'snapshot')
+    snapshot.snapshot_path = os.path.join(guardian_path, 'data', 'snapshot')
     print(f'创建了首个快照：{snapshot.create_snapshot()} ~')
 
     print(f'安装完成，重启后生效 ~')
