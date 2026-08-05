@@ -52,7 +52,7 @@ jobs:
 
                   curl.exe -L --retry 3 -o adkwinpesetup.exe "https://go.microsoft.com/fwlink/?linkid=2289981"
                   if ($LASTEXITCODE -ne 0) { throw "下载 adkwinpesetup.exe 失败" }
-                  .\adkwinpesetup.exe /quiet /norestart /ceip off /features +
+                  .\adkwinpesetup.exe /quiet /norestart /ceip off /features OptionId.WindowsPreinstallationEnvironment /log "$env:TEMP\adk_winpe.log"
                   $code = $LASTEXITCODE
                   Write-Host "adkwinpesetup 退出码: $code"
 
@@ -61,6 +61,8 @@ jobs:
                   if (-not (Test-Path "$adk\Windows Preinstallation Environment\amd64\en-us\winpe.wim")) {
                       Write-Host "=== ADK 目录内容（前 60 项）==="
                       Get-ChildItem $adk -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 60 -ExpandProperty FullName
+                      Write-Host "=== adk_winpe.log 尾部（附加包真实原因）==="
+                      Get-Content "$env:TEMP\adk_winpe.log" -Tail 100 -ErrorAction SilentlyContinue
                       throw "WinPE amd64 载荷缺失（adksetup 退出码见上，addon=$code）"
                   }
                   Write-Host "WinPE amd64 载荷就位 ✅"
