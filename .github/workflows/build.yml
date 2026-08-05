@@ -61,19 +61,11 @@ jobs:
                   Copy-Item temp\recovery.exe temp\mount\Windows\System32\recovery.exe -Force
                   Copy-Item src\startnet.cmd temp\mount\Windows\System32\startnet.cmd -Force
                   Write-Host "已注入 recovery.exe + startnet.cmd"
-                  if (Test-Path "temp\mount\Windows\Boot\PCAT\boot.sdi") {
-                      Copy-Item temp\mount\Windows\Boot\PCAT\boot.sdi temp\boot.sdi -Force
-                  } elseif (Test-Path "temp\mount\Windows\Boot\EFI\boot.sdi") {
-                      Copy-Item temp\mount\Windows\Boot\EFI\boot.sdi temp\boot.sdi -Force
-                  } else {
-                      throw "wim 里找不到 boot.sdi"
-                  }
-                  Write-Host "boot.sdi 已提取"
                   dism /Unmount-Wim /MountDir:temp\mount /Commit /Quiet
                   if ($LASTEXITCODE -ne 0) { throw "DISM 提交失败" }
                   Copy-Item temp\base_work.wim temp\recovery.wim -Force
-                  Write-Host "recovery.wim: $([math]::Round((Get-Item temp\recovery.wim).Length/1MB,1)) MB [OK]"            - name: Create App Directory
-              
+                  Write-Host "recovery.wim: $([math]::Round((Get-Item temp\recovery.wim).Length/1MB,1)) MB [OK]"
+                  
             - name: Create App Directory
               run: |
                 mkdir app
@@ -84,7 +76,6 @@ jobs:
                 copy /y temp\config.exe app\appdata\
                 copy /y temp\setup.exe app
                 copy /y temp\recovery.wim app\recovery\
-                copy /y temp\boot.sdi app\recovery\
                 copy /y drivers\x64\Release\*.sys app\drivers\
                 copy /y launcher\bin\Release\launcher.exe app\appdata\
               shell: cmd
@@ -94,3 +85,4 @@ jobs:
               with:
                   name: build-artifact
                   path: app
+
