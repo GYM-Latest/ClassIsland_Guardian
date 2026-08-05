@@ -6,7 +6,6 @@ import sys
 import subprocess
 import winreg
 import ctypes
-import psutil
 from ctypes import wintypes
 
 from utils.log import Log
@@ -66,6 +65,7 @@ class Exec:
     @staticmethod
     def kill_process(name):
         '结束指定进程。 传入要结束的进程名(string)。 成功返回True'
+        import psutil
         for proc in psutil.process_iter(['name']):
             if proc.info['name'] == name:
                 try:
