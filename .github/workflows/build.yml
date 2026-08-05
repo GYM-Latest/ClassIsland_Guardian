@@ -49,7 +49,7 @@ jobs:
             - name: Build recovery Environment
               run: |
                 $ocs = "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Windows Preinstallation Environment\amd64\WinPE_OCs\zh-cn"
-                & "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\copype.cmd" amd64 C:\WinPE_amd64
+                & "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Windows Preinstallation Environment\copype.cmd" amd64 C:\WinPE_amd64
                 dism /Mount-Wim /WimFile:C:\WinPE_amd64\media\sources\boot.wim /Index:1 /MountDir:C:\WinPE_amd64\mount
                 Copy-Item temp\recovery.exe C:\WinPE_amd64\mount\Windows\System32\recovery.exe -Force                                                                                                           
                 Copy-Item src\startnet.cmd C:\WinPE_amd64\mount\Windows\System32\startnet.cmd -Force
