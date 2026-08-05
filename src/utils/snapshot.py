@@ -14,7 +14,7 @@ class Snapshot:
     def __init__(self,db):
         self.db = db
         self.snapshot_path = os.path.join(Exec.get_exe_path(),'data','snapshot')
-        self.recovery_snapshot_path = os.path.join(os.environ.get('SystemDrive', 'C:') + '\\', 'GuardianRecovery', 'data','snapshot')
+        self.recovery_snapshot_path = os.path.join(os.environ.get('SystemDrive', 'C:') + '\\', 'GuardianRecovery', 'data', 'snapshot')
         self.Process = Process(db)
         self.classisland_path = db.path.get('classisland_path')
 
@@ -29,6 +29,7 @@ class Snapshot:
                         zf.write(file_path, arcname)
         except Exception as e:
             Log.error(f'压缩文件时出错，错误是：{e}')
+        return True
     
     def list_snapshot(self):
         '列出所有可用的快照。 成功返回列表，失败返回False'
