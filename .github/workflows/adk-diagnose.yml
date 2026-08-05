@@ -1,0 +1,59 @@
+name: ADK Diagnostic
+on:
+    workflow_dispatch:
+
+jobs:
+    diagnose:
+        runs-on: windows-2022
+        steps:
+            - name: Install Windows ADK (choco)
+              shell: pwsh
+              run: |
+                  choco install windows-adk -y --no-progress
+                  Write-Host "windows-adk choco exit: $LASTEXITCODE"
+                  choco install windows-adk-winpe -y --no-progress
+                  Write-Host "windows-adk-winpe choco exit: $LASTEXITCODE"
+
+            - name: Diagnose ADK location
+              shell: pwsh
+              run: |
+                  Write-Host "=== 默认路径 copype 检查 ==="
+                  $expected = "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\copype.cmd"
+                  Write-Host "copype (default path): $(Test-Path $expected)"
+
+                  Write-Host ""
+                  Write-Host "=== 注册表 KitsRoot10 + 常见路径 ==="
+                  $roots = @()
+                  foreach ($hive in @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows Kits\Installed Roots',
+                                      'HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots')) {
+                      $r = (Get-ItemProperty $hive -Name KitsRoot10 -ErrorAction SilentlyContinue).KitsRoot10
+                      if ($r) { $roots += $r }
+                  }
+                  $roots += @("$env:ProgramFiles(x86)\Windows Kits\10\", "$env:ProgramFiles\Windows Kits\10\")
+                  foreach ($root in ($roots | Select-Object -Unique)) {
+                      Write-Host "--- $root ---"
+                      Write-Host "exists: $(Test-Path $root)"
+                      Get-ChildItem $root -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+                  }
+
+                  Write-Host ""
+                  Write-Host "=== copype.cmd 全盘搜 ==="
+                  Get-ChildItem "$env:ProgramFiles*\Windows Kits" -Recurse -Filter copype.cmd -ErrorAction SilentlyContinue |
+                      Select-Object -ExpandProperty FullName
+
+                  Write-Host ""
+                  Write-Host "=== ADKSetup.log 尾部（adksetup 自己的日志）==="
+                  Get-Content (Join-Path $env:TEMP 'ADKSetup.log') -Tail 60 -ErrorAction SilentlyContinue
+
+                  Write-Host ""
+                  Write-Host "=== win_adk.log 尾部（choco 指定的日志）==="
+                  Get-Content (Join-Path $env:TEMP 'win_adk.log') -Tail 60 -ErrorAction SilentlyContinue
+
+                  Write-Host ""
+                  Write-Host "=== pending reboot 状态 ==="
+                  Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending"
+                  Test-Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\PendingFileRenameOperations"
+
+                  Write-Host ""
+                  Write-Host "=== choco 日志尾部 ==="
+                  Get-Content "C:\ProgramData\chocolatey\logs\chocolatey.log" -Tail 30 -ErrorAction SilentlyContinue
