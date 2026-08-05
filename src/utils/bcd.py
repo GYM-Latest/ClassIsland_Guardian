@@ -17,7 +17,7 @@ class Bcd:
             )
             current_guid = None
             for line in result.stdout.splitlines():
-                id_match = re.match(r'identifier\s+(\{[^\}]+\})', line.strip())
+                id_match = re.match(r'(?:identifier|标识符)\s+(\{[^\}]+\})', line.strip())
                 if id_match:
                     current_guid = id_match.group(1)
                 if 'ClassIsland Guardian Recovery' in line and current_guid:
@@ -41,11 +41,12 @@ class Bcd:
             current_guid = None
             for line in result.stdout.splitlines():
                 stripped = line.strip()
-                id_match = re.match(r'identifier\s+(\{[^\}]+\})', stripped)
+                id_match = re.match(r'(?:identifier|标识符)\s+(\{[^\}]+\})', stripped)
                 if id_match:
                     current_guid = id_match.group(1)
-                if (stripped.startswith('description')
+                if ((stripped.startswith('description') or stripped.startswith('描述'))
                         and 'Windows' in stripped
+                        and 'Boot Manager' not in stripped
                         and 'Recovery' not in stripped
                         and 'To Go' not in stripped
                         and current_guid):
@@ -60,12 +61,16 @@ class Bcd:
     def create_recovery_bcd():
         '''为 GuardianRecovery\\recovery.wim 创建 BCD 启动项。 成功返回对应启动项的GUID(String)，失败返回 False '''
         try:
+            if(Bcd._find_recovery_guid()):
+                Log.error('创建 BCD启动项 失败，错误是：已经有同名启动项')
+                return False
             system_device = os.environ.get('SystemDrive', 'C:')
             # 复制现有启动项
             result = subprocess.run(
-                ['bcdedit', '/copy', '{current}', '/d', '"ClassIsland Guardian Recovery"'],
+                ['bcdedit', '/copy', '{current}', '/d', 'ClassIsland Guardian Recovery'],
                 check = True,
-                capture_output = True
+                capture_output = True,
+                text = True
             )
             recovery_guid = re.search(r'\{[^\}]+\}', result.stdout).group()
             # 设置设备路径
@@ -83,12 +88,26 @@ class Bcd:
             subprocess.run(['bcdedit', '/set', recovery_guid, 'winpe', 'yes'], check=True)
             subprocess.run(['bcdedit', '/set', recovery_guid, 'systemroot', '\\Windows'], check=True)
             subprocess.run(['bcdedit', '/set', recovery_guid, 'detecthal', 'yes'], check=True)
+            # 确保 {ramdiskoptions} 存在
+            result = subprocess.run(['bcdedit', '/enum', '{ramdiskoptions}'],
+                                    capture_output=True, text=True)
+            if result.returncode != 0:
+                subprocess.run(['bcdedit', '/create', '{ramdiskoptions}'],
+                                check=True, capture_output=True, text=True)
+                subprocess.run(['bcdedit', '/set', '{ramdiskoptions}',
+                                'ramdisksdidevice', f'partition={system_device}'],
+                                check=True, capture_output=True, text=True)
+                subprocess.run(['bcdedit', '/set', '{ramdiskoptions}',
+                                'ramdisksdipath', '\\boot\\boot.sdi'],
+                                check=True, capture_output=True, text=True)
+                Log.info('已创建 {ramdiskoptions} ~')
             # 添加到启动菜单
             subprocess.run(['bcdedit', '/displayorder', recovery_guid, '-addlast'], check=True)
             # 隐藏启动菜单
             subprocess.run(['bcdedit', '/timeout', '0'], check=True)
             return recovery_guid
-        except Exception:
+        except Exception as e:
+            Log.error(f'创建 BCD启动项 失败，错误是：{e}')
             return False
 
     @staticmethod
