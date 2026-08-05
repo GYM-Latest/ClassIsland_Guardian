@@ -231,5 +231,10 @@ def main():
         fix_guardian()
         Bcd.set_windows_bcd_start()
 
+    # 重启
+    Log.info("操作完成，系统将在 3 秒后重启 ~")
+    time.sleep(3)
+    subprocess.run(['wpeutil', 'reboot'])
+
 if __name__ == "__main__":
     main()
