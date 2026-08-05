@@ -38,30 +38,38 @@ jobs:
               uses: actions/cache@v4
               with: 
                 path: C:\Program Files (x86)\Windows Kits
-                key: adk-winpe-10.1.26100.2454-v5
+                key: adk-winpe-10.1.26100.2454-v7
             
-            - name: Install ADK (Deployment Tools + WinPE)
+            - name: Install WinPE add-on (explicit path)
               if: steps.cache-adk.outputs.cache-hit != 'true'
               shell: pwsh
               run: |
-                  # 只用一个安装器：adksetup 自带 WindowsPreinstallationEnvironment 组件，
-                  # adkwinpesetup 在 runner 上行为不可控（试了 3 次都静默装空气），弃用
-                  curl.exe -L --retry 3 -o adksetup.exe "https://go.microsoft.com/fwlink/?linkid=2289980"
-                  if ($LASTEXITCODE -ne 0) { throw "下载 adksetup.exe 失败" }
-                  .\adksetup.exe /quiet /norestart /ceip off /features OptionId.DeploymentTools OptionId.WindowsPreinstallationEnvironment /log "$env:TEMP\adk_setup.log"
-                  Write-Host "adksetup 退出码: $LASTEXITCODE"
+                  # 关键修复：adkwinpesetup 默认装到 D:\Windows Kits\10（帮助文本实锤），
+                  # 必须用 /installpath 强制装到 SDK 根目录，否则校验永远找不到
+                  curl.exe -L --retry 3 -o adkwinpesetup.exe "https://go.microsoft.com/fwlink/?linkid=2289981"
+                  if ($LASTEXITCODE -ne 0) { throw "下载 adkwinpesetup.exe 失败" }
+                  .\adkwinpesetup.exe /quiet /norestart /ceip off /features + /installpath "C:\Program Files (x86)\Windows Kits\10"
+                  Write-Host "adkwinpesetup 退出码: $LASTEXITCODE"
 
-                  $adk = "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit"
-                  if (-not (Test-Path "$adk\Windows Preinstallation Environment\amd64\en-us\winpe.wim")) {
-                      Write-Host "=== ADK 目录内容（前 60 项）==="
-                      Get-ChildItem $adk -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 60 -ExpandProperty FullName
-                      Write-Host "=== adk_setup.log 尾部 ==="
-                      Get-Content "$env:TEMP\adk_setup.log" -Tail 100 -ErrorAction SilentlyContinue
-                      Write-Host "=== ADKSetup.log 尾部 ==="
-                      Get-Content (Join-Path $env:TEMP 'ADKSetup.log') -Tail 100 -ErrorAction SilentlyContinue
-                      throw "WinPE amd64 载荷缺失（adksetup 退出码见上）"
+                  # 校验：C:（installpath 目标）和 D:（附加包默认路径）都查，
+                  # 若只装在 D: 则复制到 C:，保证后续步骤统一用 C: 路径
+                  $cRoot = "C:\Program Files (x86)\Windows Kits\10"
+                  $dRoot = "D:\Windows Kits\10"
+                  $cWim = "$cRoot\Assessment and Deployment Kit\Windows Preinstallation Environment\amd64\en-us\winpe.wim"
+                  $dWim = "$dRoot\Assessment and Deployment Kit\Windows Preinstallation Environment\amd64\en-us\winpe.wim"
+                  if (Test-Path $cWim) {
+                      Write-Host "winpe.wim 就位（C:）✅"
+                  } elseif (Test-Path $dWim) {
+                      Write-Host "winpe.wim 在 D:，复制到 C: ..."
+                      Copy-Item "$dRoot\Assessment and Deployment Kit\Windows Preinstallation Environment" "$cRoot\Assessment and Deployment Kit\" -Recurse -Force
+                      Write-Host "已复制 ✅"
+                  } else {
+                      Write-Host "=== C: ADK 目录 ==="
+                      Get-ChildItem "$cRoot\Assessment and Deployment Kit" -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 40 -ExpandProperty FullName
+                      Write-Host "=== D: ADK 目录 ==="
+                      Get-ChildItem "$dRoot\Assessment and Deployment Kit" -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 40 -ExpandProperty FullName
+                      throw "C:/D: 都没找到 winpe.wim（adkwinpesetup 退出码见上）"
                   }
-                  Write-Host "WinPE amd64 载荷就位 ✅"
             
             - name: Build recovery Environment
               run: |
