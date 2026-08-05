@@ -22,6 +22,7 @@ jobs:
                 pyinstaller --distpath temp -w -F -n guardian src\guardian.py
                 pyinstaller --distpath temp -F --copy-metadata readchar -n config src\config.py
                 pyinstaller --distpath temp -F -n setup src\setup.py
+                pyinstaller --distpath temp -F -n recovery src\recovery.py
 
             - name: Add MSBuild to PATH
               uses: microsoft/setup-msbuild@v2
@@ -31,15 +32,47 @@ jobs:
 
             - name: Build launcher Executable
               run: msbuild launcher\launcher.slnx /p:Configuration=Release /p:Platform="Any CPU"
+            
+            - name: Cache Windows ADK
+              id: cache-adk
+              uses: actions/cache@v4
+              with: 
+                path: C:\Program Files (x86)\Windows Kits
+                key: adk-winpe-10.1.26100.2454
+            
+            - name: Install Windows ADK
+              if: steps.cache-adk.outputs.cache-hit != 'true'
+              run: |
+                choco install windows-adk -y
+                choco install windows-adk-winpe -y
+            
+            - name: Build recovery Environment
+              run: |
+                $ocs = "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Windows Preinstallation Environment\amd64\WinPE_OCs\zh-cn"
+                & "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\copype.cmd" amd64 C:\WinPE_amd64
+                dism /Mount-Wim /WimFile:C:\WinPE_amd64\media\sources\boot.wim /Index:1 /MountDir:C:\WinPE_amd64\mount
+                Copy-Item temp\recovery.exe C:\WinPE_amd64\mount\Windows\System32\recovery.exe -Force                                                                                                           
+                Copy-Item src\startnet.cmd C:\WinPE_amd64\mount\Windows\System32\startnet.cmd -Force
+                dism /Image:C:\WinPE_amd64\mount /Add-Package /PackagePath:"$ocs\lp.cab"                                                                                                                        
+                dism /Image:C:\WinPE_amd64\mount /Add-Package /PackagePath:"$ocs\WinPE-Fonts-zh-CN.cab"                                                                                                         
+                dism /Image:C:\WinPE_amd64\mount /Add-Package /PackagePath:"$ocs\WinPE-Fonts-JpanNag.cab"                                                                                                       
+                dism /Image:C:\WinPE_amd64\mount /Set-AllIntl:zh-CN     
+                Copy-Item C:\WinPE_amd64\media\boot\boot.sdi .\temp\boot.sdi -Force                                                                                                                   
+                dism /Unmount-Wim /MountDir:C:\WinPE_amd64\mount /Commit
+                Copy-Item C:\WinPE_amd64\media\sources\boot.wim .\temp\recovery.wim
+                
 
             - name: Create App Directory
               run: |
                 mkdir app
                 mkdir app\drivers
                 mkdir app\appdata
+                mkdir app\recovery
                 copy /y temp\guardian.exe app\appdata\
                 copy /y temp\config.exe app\appdata\
                 copy /y temp\setup.exe app
+                copy /y temp\recovery.wim app\recovery\
+                copy /y temp\boot.sdi app\recovery\
                 copy /y drivers\x64\Release\*.sys app\drivers\
                 copy /y launcher\bin\Release\launcher.exe app\appdata\
               shell: cmd
