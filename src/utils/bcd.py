@@ -88,19 +88,24 @@ class Bcd:
             subprocess.run(['bcdedit', '/set', recovery_guid, 'winpe', 'yes'], check=True)
             subprocess.run(['bcdedit', '/set', recovery_guid, 'systemroot', '\\Windows'], check=True)
             subprocess.run(['bcdedit', '/set', recovery_guid, 'detecthal', 'yes'], check=True)
-            # 确保 {ramdiskoptions} 存在
-            result = subprocess.run(['bcdedit', '/enum', '{ramdiskoptions}'],
-                                    capture_output=True, text=True)
-            if result.returncode != 0:
-                subprocess.run(['bcdedit', '/create', '{ramdiskoptions}'],
-                                check=True, capture_output=True, text=True)
+            # 确保 {ramdiskoptions} 存在且配置了 SDI 路径
+            check = subprocess.run(['bcdedit', '/enum', '{ramdiskoptions}'],
+                                   capture_output=True, text=True)
+            out = (check.stdout or '') + (check.stderr or '')
+            if 'ramdisksdidevice' not in out or 'ramdisksdipath' not in out:
+                exists = re.search(r'标识符\s+(\{[^\}]+\})', out) is not None
+                if not exists:
+                    subprocess.run(['bcdedit', '/create', '{ramdiskoptions}',
+                                    '/d', 'Ramdisk options'],
+                                   check=True, capture_output=True, text=True)
+                    Log.info('已创建 {ramdiskoptions} ~')
                 subprocess.run(['bcdedit', '/set', '{ramdiskoptions}',
                                 'ramdisksdidevice', f'partition={system_device}'],
-                                check=True, capture_output=True, text=True)
+                               check=True, capture_output=True, text=True)
                 subprocess.run(['bcdedit', '/set', '{ramdiskoptions}',
                                 'ramdisksdipath', '\\boot\\boot.sdi'],
-                                check=True, capture_output=True, text=True)
-                Log.info('已创建 {ramdiskoptions} ~')
+                               check=True, capture_output=True, text=True)
+                Log.info('已配置 {ramdiskoptions} SDI 路径 ~')
             # 添加到启动菜单
             subprocess.run(['bcdedit', '/displayorder', recovery_guid, '-addlast'], check=True)
             # 隐藏启动菜单
