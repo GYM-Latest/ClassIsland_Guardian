@@ -33,60 +33,47 @@ jobs:
             - name: Build launcher Executable
               run: msbuild launcher\launcher.slnx /p:Configuration=Release /p:Platform="Any CPU"
             
-            - name: Cache Windows ADK
-              id: cache-adk
+            - name: Cache recovery base
+              id: cache-base
               uses: actions/cache@v4
-              with: 
-                path: C:\Program Files (x86)\Windows Kits
-                key: adk-winpe-10.1.26100.2454-v7
-            
-            - name: Install WinPE add-on (explicit path)
-              if: steps.cache-adk.outputs.cache-hit != 'true'
+              with:
+                  path: temp\base.wim
+                  key: recovery-base-1
+
+            - name: Download recovery base (base.wim)
+              if: steps.cache-base.outputs.cache-hit != 'true'
               shell: pwsh
               run: |
-                  # 关键修复：adkwinpesetup 默认装到 D:\Windows Kits\10（帮助文本实锤），
-                  # 必须用 /installpath 强制装到 SDK 根目录，否则校验永远找不到
-                  curl.exe -L --retry 3 -o adkwinpesetup.exe "https://go.microsoft.com/fwlink/?linkid=2289981"
-                  if ($LASTEXITCODE -ne 0) { throw "下载 adkwinpesetup.exe 失败" }
-                  .\adkwinpesetup.exe /quiet /norestart /ceip off /features + /installpath "C:\Program Files (x86)\Windows Kits\10"
-                  Write-Host "adkwinpesetup 退出码: $LASTEXITCODE"
+                  New-Item -ItemType Directory -Force -Path temp | Out-Null
+                  $base = "https://github.com/${{ github.repository }}/releases/download/recovery-base"
+                  curl.exe -L --retry 3 -o temp\base.wim "$base/base.wim"
+                  if ($LASTEXITCODE -ne 0) { throw "下载 base.wim 失败" }
+                  if (-not (Test-Path "temp\base.wim") -or (Get-Item "temp\base.wim").Length -lt 100MB) { throw "base.wim 异常（过小或缺失）" }
+                  Write-Host "base.wim: $([math]::Round((Get-Item temp\base.wim).Length/1MB,1)) MB [OK]"
 
-                  # 校验：C:（installpath 目标）和 D:（附加包默认路径）都查，
-                  # 若只装在 D: 则复制到 C:，保证后续步骤统一用 C: 路径
-                  $cRoot = "C:\Program Files (x86)\Windows Kits\10"
-                  $dRoot = "D:\Windows Kits\10"
-                  $cWim = "$cRoot\Assessment and Deployment Kit\Windows Preinstallation Environment\amd64\en-us\winpe.wim"
-                  $dWim = "$dRoot\Assessment and Deployment Kit\Windows Preinstallation Environment\amd64\en-us\winpe.wim"
-                  if (Test-Path $cWim) {
-                      Write-Host "winpe.wim 就位（C:）✅"
-                  } elseif (Test-Path $dWim) {
-                      Write-Host "winpe.wim 在 D:，复制到 C: ..."
-                      Copy-Item "$dRoot\Assessment and Deployment Kit\Windows Preinstallation Environment" "$cRoot\Assessment and Deployment Kit\" -Recurse -Force
-                      Write-Host "已复制 ✅"
-                  } else {
-                      Write-Host "=== C: ADK 目录 ==="
-                      Get-ChildItem "$cRoot\Assessment and Deployment Kit" -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 40 -ExpandProperty FullName
-                      Write-Host "=== D: ADK 目录 ==="
-                      Get-ChildItem "$dRoot\Assessment and Deployment Kit" -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 40 -ExpandProperty FullName
-                      throw "C:/D: 都没找到 winpe.wim（adkwinpesetup 退出码见上）"
-                  }
-            
-            - name: Build recovery Environment
+            - name: Build recovery.wim
+              shell: pwsh
               run: |
-                $ocs = "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Windows Preinstallation Environment\amd64\WinPE_OCs\zh-cn"
-                & "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Windows Preinstallation Environment\copype.cmd" amd64 C:\WinPE_amd64
-                dism /Mount-Wim /WimFile:C:\WinPE_amd64\media\sources\boot.wim /Index:1 /MountDir:C:\WinPE_amd64\mount
-                Copy-Item temp\recovery.exe C:\WinPE_amd64\mount\Windows\System32\recovery.exe -Force                                                                                                           
-                Copy-Item src\startnet.cmd C:\WinPE_amd64\mount\Windows\System32\startnet.cmd -Force
-                dism /Image:C:\WinPE_amd64\mount /Add-Package /PackagePath:"$ocs\lp.cab"                                                                                                                        
-                dism /Image:C:\WinPE_amd64\mount /Add-Package /PackagePath:"$ocs\WinPE-Fonts-zh-CN.cab"                                                                                                         
-                dism /Image:C:\WinPE_amd64\mount /Add-Package /PackagePath:"$ocs\WinPE-Fonts-JpanNag.cab"                                                                                                       
-                dism /Image:C:\WinPE_amd64\mount /Set-AllIntl:zh-CN     
-                Copy-Item C:\WinPE_amd64\media\boot\boot.sdi .\temp\boot.sdi -Force                                                                                                                   
-                dism /Unmount-Wim /MountDir:C:\WinPE_amd64\mount /Commit
-                Copy-Item C:\WinPE_amd64\media\sources\boot.wim .\temp\recovery.wim
-                
-
+                  Copy-Item temp\base.wim temp\base_work.wim -Force
+                  New-Item -ItemType Directory -Force -Path temp\mount | Out-Null
+                  dism /Mount-Wim /WimFile:temp\base_work.wim /Index:1 /MountDir:temp\mount /Quiet
+                  if ($LASTEXITCODE -ne 0) { throw "DISM 挂载失败" }
+                  Copy-Item temp\recovery.exe temp\mount\Windows\System32\recovery.exe -Force
+                  Copy-Item src\startnet.cmd temp\mount\Windows\System32\startnet.cmd -Force
+                  Write-Host "已注入 recovery.exe + startnet.cmd"
+                  if (Test-Path "temp\mount\Windows\Boot\PCAT\boot.sdi") {
+                      Copy-Item temp\mount\Windows\Boot\PCAT\boot.sdi temp\boot.sdi -Force
+                  } elseif (Test-Path "temp\mount\Windows\Boot\EFI\boot.sdi") {
+                      Copy-Item temp\mount\Windows\Boot\EFI\boot.sdi temp\boot.sdi -Force
+                  } else {
+                      throw "wim 里找不到 boot.sdi"
+                  }
+                  Write-Host "boot.sdi 已提取"
+                  dism /Unmount-Wim /MountDir:temp\mount /Commit /Quiet
+                  if ($LASTEXITCODE -ne 0) { throw "DISM 提交失败" }
+                  Copy-Item temp\base_work.wim temp\recovery.wim -Force
+                  Write-Host "recovery.wim: $([math]::Round((Get-Item temp\recovery.wim).Length/1MB,1)) MB [OK]"            - name: Create App Directory
+              
             - name: Create App Directory
               run: |
                 mkdir app
