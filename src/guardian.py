@@ -16,6 +16,7 @@ from utils.database import Database
 from utils.process import Process
 from utils.exec import Exec
 from utils.snapshot import Snapshot
+from utils.bcd import Bcd
 from utils.version import VERSION, CODENAME
 
 # 热重启函数
@@ -149,7 +150,7 @@ def main():
 
         db = Database(Exec.get_exe_path())
         if(not db.read_database()):
-            sys.exit(0)
+            Bcd.set_recovery_bcd_start()
         Process = Process(db)
         Snapshot = Snapshot(db)
         Exec.make_process_critical()
