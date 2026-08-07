@@ -18,7 +18,6 @@ from utils.version import VERSION, CODENAME
 from utils.snapshot import Snapshot
 
 def check_password():
-
     while(True):
         Exec.clear_terminal()
         print(f'请输入管理员密码 ~\n')
@@ -41,6 +40,7 @@ def main():
         ctypes.windll.shell32.ShellExecuteW(None, "runas",
                                             sys.executable,
                                             " ".join(sys.argv), None, 1)
+        return
 
     global db
     global Snapshot
@@ -70,7 +70,34 @@ def main():
         result = readchar.readchar()
         # 保护设置
         if(result == '1'):
-            pass
+            while True:
+                if(os.path.exists(os.path.join(Exec.get_exe_path(), '.tempstopprotect'))):
+                    print('当前状态：保护暂时关闭，下次启动将会恢复 ~')
+                elif(os.path.exists(os.path.join(Exec.get_exe_path(), '.stopprotect'))):
+                    print('当前状态：保护关闭 QwQ')
+                else:
+                    print('当前状态：保护运行中')
+                print()
+                print('''请选择要进行的操作 ~
+[1] 暂时关闭保护（重启后自动恢复）
+[2] 关闭保护（需要手动恢复...）
+[3] 重新启动保护
+[0] 返回
+''')
+                result = readchar.readchar()
+                if(result == '1'):
+                    with open(os.path.join(Exec.get_exe_path(), '.tempstopprotect')) as f:
+                        f.write('')
+                elif(result == '2'):
+                    with open(os.path.join(Exec.get_exe_path(), '.stopprotect')) as f:
+                        f.write('')
+                elif(result == '3'):
+                    if(os.path.exists(os.path.join(Exec.get_exe_path(), '.tempstopprotect'))):
+                        os.remove(os.path.join(Exec.get_exe_path(), '.tempstopprotect'))
+                    if(os.path.exists(os.path.join(Exec.get_exe_path(), '.stopprotect'))):
+                        os.remove(os.path.join(Exec.get_exe_path(), '.stopprotect'))
+                elif(result == '0'):
+                    break
         # 快照管理
         elif(result == '2'):
             while True:
