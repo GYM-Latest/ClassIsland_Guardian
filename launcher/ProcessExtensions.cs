@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Based on murrayju/CreateProcessAsUser (MIT)
+// https://github.com/murrayju/CreateProcessAsUser
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 

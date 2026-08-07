@@ -1,3 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 GYM_Latest
+# 基于 grintor/win_graceful_shutdown (GPL-3.0) 修改
+# https://github.com/grintor/win_graceful_shutdown
+
 import os
 import win32con
 import win32api

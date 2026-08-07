@@ -188,7 +188,34 @@ def main():
             pass
         # 关于
         elif(result == '5'):
-            pass
+            Exec.clear_terminal()
+            print(f'''ClassIsland Guardian 配置管理程序
+版本：{VERSION} ({CODENAME})
+作者：GYM_Latest
+许可证：GPL-3.0-only
+仓库：https://github.com/SXSJGYM/ClassIsland_Guardian
+
+本程序是 ClassIsland 的守护程序，采用应用层守护、驱动层保护与预启动修复
+三层防护架构，保护 ClassIsland 不被意外退出或恶意终止。
+
+使用的第三方库：
+- psutil —— 进程检测与快照压缩
+- APScheduler —— 守护任务线程调度
+- pywin32 —— Windows API 交互（提权、关机拦截等）
+- readchar —— 单键菜单交互
+- prompt-toolkit —— 安装向导交互（setup）
+
+内嵌的第三方开源模块（基于上游代码做了少量修改）：
+- grintor/win_graceful_shutdown —— Windows 优雅关机处理（拦截结束请求、优雅退出）
+  （https://github.com/grintor/win_graceful_shutdown）
+- murrayju/CreateProcessAsUser —— 在用户会话中启动进程（launcher 服务使用）
+  （https://github.com/murrayju/CreateProcessAsUser）
+
+关联的第三方项目：
+- ClassIsland —— 本程序守护的对象（https://github.com/ClassIsland/ClassIsland）
+''')
+            print('按任意键返回 ~')
+            readchar.readchar()
         # 退出
         elif(result == '0'):
             sys.exit(0)
