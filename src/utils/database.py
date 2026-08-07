@@ -26,9 +26,6 @@ class Database:
                     self.path['classisland_path'] = row[0]
                     self.path['classisland_process_name'] = row[1] or 'ClassIsland.Desktop.exe'
                     self.path['classisland_launcher_name'] = row[2] or 'ClassIsland.exe'
-                    if not row[0] or not os.path.isdir(row[0]):
-                        Log.error(f'ClassIsland 路径无效或不存在: {row[0]}')
-                        return False 
                         
                 cursor.execute('SELECT password FROM config WHERE id=1')
                 row = cursor.fetchone()
