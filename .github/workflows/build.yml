@@ -19,7 +19,7 @@ jobs:
 
             - name: Build Python Executable
               run: |
-                pyinstaller --distpath temp -w -F -n guardian src\guardian.py
+                pyinstaller --distpath temp -w -F -n guardian --copy-metadata apscheduler --hidden-import apscheduler.triggers.interval --hidden-import apscheduler.triggers.date --hidden-import apscheduler.executors.pool --hidden-import apscheduler.jobstores.memory --hidden-import tzlocal src\guardian.py
                 pyinstaller --distpath temp -F --copy-metadata readchar -n config src\config.py
                 pyinstaller --distpath temp -F -n setup src\setup.py
                 pyinstaller --distpath temp -F -n recovery src\recovery.py
