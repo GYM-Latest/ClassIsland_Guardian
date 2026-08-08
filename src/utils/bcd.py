@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import subprocess
 
 from utils.log import Log
@@ -152,12 +153,29 @@ class Bcd:
                         "/set",
                         "{ramdiskoptions}",
                         "ramdisksdipath",
-                        "\\boot\\boot.sdi",
+                        "\\GuardianRecovery\\boot.sdi",
                     ],
                     check=True,
                     capture_output=True,
                     text=True,
                 )
+                # 复制 boot.sdi 文件
+                boot_sdi_source_path = (
+                    f"{system_device}\\Windows\\Boot\\DVD\\PCAT\\boot.sdi"
+                )
+                if not os.path.exists(boot_sdi_source_path):
+                    boot_sdi_source_path = (
+                        f"{system_device}\\Windows\\Boot\\PCAT\\boot.sdi"
+                    )
+                if not os.path.exists(boot_sdi_source_path):
+                    Log.error(
+                        "未找到系统内置 boot.sdi 文件，无法配置 {ramdiskoptions} ~"
+                    )
+                    return False
+                boot_sdi_target_path = f"{system_device}\\GuardianRecovery\\boot.sdi"
+                os.makedirs(f"{system_device}\\GuardianRecovery", exist_ok=True)
+                shutil.copy2(boot_sdi_source_path, boot_sdi_target_path)
+                Log.info("已复制 boot.sdi 文件 ~")
                 Log.info("已配置 {ramdiskoptions} SDI 路径 ~")
             # 添加到启动菜单
             subprocess.run(
