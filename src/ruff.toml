@@ -1,0 +1,13 @@
+# Ruff 配置：忽略对本项目无害的规则
+# BLE001: 盲捕获 Exception —— 守护进程容错，任何错误记录后继续运行
+# S110:   try-except-pass —— 清理文件失败静默忽略，非致命操作
+# DTZ005: datetime.now() 无时区 —— 本地工具，本地时间即所需
+# E722:   裸 except —— 守护/清理场景故意捕获一切（含 KeyboardInterrupt/SystemExit），
+#         兜底逻辑不能漏任何异常
+[lint]
+ignore = [
+    "BLE001",
+    "S110",
+    "DTZ005",
+    "E722",
+]

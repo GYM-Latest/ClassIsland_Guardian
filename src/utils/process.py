@@ -1,27 +1,29 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 GYM_Latest
 
-import psutil
 import os
-import time
-import shutil
 import random
+import shutil
 import tempfile
+import time
 
-from utils.log import Log
+import psutil
+
 from utils.exec import Exec
+from utils.log import Log
 
 # ClassIsland 主程序固定文件名
-CLASSISLAND_PROCESS_NAME = 'ClassIsland.Desktop.exe'
+CLASSISLAND_PROCESS_NAME = "ClassIsland.Desktop.exe"
+
 
 class Process:
-    def __init__(self,db):
+    def __init__(self, db):
         self.db = db
 
     # 寻找最优的ClassIsland主程序路径并返回
     def _find_classisland_app_path(self):
-        '''寻找最优的 ClassIsland 主程序可执行文件路径。成功返回 路径(String) ，失败返回 False'''
-        classisland_path = self.db.path.get('classisland_path')
+        """寻找最优的 ClassIsland 主程序可执行文件路径。成功返回 路径(String) ，失败返回 False"""
+        classisland_path = self.db.path.get("classisland_path")
         if not os.path.isdir(classisland_path):
             return False
         filelist = os.listdir(classisland_path)
@@ -30,14 +32,16 @@ class Process:
         for path in filelist:
             app_dir = os.path.join(classisland_path, path)
             if os.path.isdir(app_dir):
-                if(not path.startswith("app-")):
+                if not path.startswith("app-"):
                     continue
-                if(os.path.exists(os.path.join(app_dir, '.partial')) or 
-                   os.path.exists(os.path.join(app_dir, '.destroy'))):
+                if os.path.exists(os.path.join(app_dir, ".partial")) or os.path.exists(
+                    os.path.join(app_dir, ".destroy")
+                ):
                     continue
-                if(not os.path.exists(os.path.join(app_dir, CLASSISLAND_PROCESS_NAME))):
+                if not os.path.exists(os.path.join(app_dir, CLASSISLAND_PROCESS_NAME)):
                     continue
                 applist.append(path)
+
         # 解析版本号函数
         def _get_version_tuple(dir_path):
             name = os.path.basename(dir_path)
@@ -48,48 +52,58 @@ class Process:
                 return tuple(int(p) for p in parts[:4])
             except ValueError:
                 return (0, 0, 0, 0)
+
         # 排序选出最优版本
         applist.sort(
             key=lambda x: (
                 os.path.exists(os.path.join(classisland_path, x, ".current")),
-                _get_version_tuple(x)
+                _get_version_tuple(x),
             ),
-            reverse=True
+            reverse=True,
         )
-        if(applist and applist[0]):
+        if applist and applist[0]:
             return os.path.join(classisland_path, applist[0], CLASSISLAND_PROCESS_NAME)
         else:
             return False
 
     # 检查ClassIsland进程数量并返回
     def check_classisland_status(self):
-        '检查Classisland进程数量。 返回Classisland进程数量(int)'
-        classisland_process_name = self.db.path.get('classisland_process_name').lower()
-        return sum(1 for proc in psutil.process_iter(['name'])
-                   if proc.info.get('name') and proc.info['name'].lower() == classisland_process_name)
+        "检查Classisland进程数量。 返回Classisland进程数量(int)"
+        classisland_process_name = self.db.path.get("classisland_process_name").lower()
+        return sum(
+            1
+            for proc in psutil.process_iter(["name"])
+            if proc.info.get("name")
+            and proc.info["name"].lower() == classisland_process_name
+        )
 
     # 查找ClassIsland进程pid并返回
     def find_classisland_pid(self):
-        '查找ClassIsland进程pid。 返回Classisland进程pid(int)，若未找到，返回False(bool)'
-        classisland_process_name = self.db.path.get('classisland_process_name').lower()
-        for proc in psutil.process_iter(['name', 'pid']):
-            if proc.info.get('name') and proc.info['name'].lower() == classisland_process_name:
-                return proc.info['pid']
+        "查找ClassIsland进程pid。 返回Classisland进程pid(int)，若未找到，返回False(bool)"
+        classisland_process_name = self.db.path.get("classisland_process_name").lower()
+        for proc in psutil.process_iter(["name", "pid"]):
+            if (
+                proc.info.get("name")
+                and proc.info["name"].lower() == classisland_process_name
+            ):
+                return proc.info["pid"]
         return False
 
     # 生成随机文件名
     @staticmethod
     def _random_name(k=6):
-        return 'tmp_' + ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=k))
+        return "tmp_" + "".join(
+            random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=k)
+        )
 
     # 清理历史逃逸启动遗留的临时目录
     def _cleanup_old_escape_dirs(self):
-        '''清理历史逃逸启动遗留的临时目录。 成功返回True，失败返回False'''
-        classisland_path = self.db.path.get('classisland_path')
+        """清理历史逃逸启动遗留的临时目录。 成功返回True，失败返回False"""
+        classisland_path = self.db.path.get("classisland_path")
         try:
             temp_path = tempfile.gettempdir()
             for entry in os.listdir(temp_path):
-                if entry.startswith('cig_'):
+                if entry.startswith("cig_"):
                     path = os.path.join(temp_path, entry)
                     if path == classisland_path:
                         continue  # 当前副本可能在运行/待复用，跳过
@@ -101,95 +115,114 @@ class Process:
 
     # 逃逸式启动ClassIsland
     def start_classisland(self):
-        '''依次尝试：删除 IFEO 劫持项，直接启动启动器，绕过启动器直接启动主程序，
-        改名启动，复制到随机目录启动，修改为 .com 后缀启动。 成功返回 True ，失败返回 False'''
-        Exec.remove_ifeo(self.db.path.get('classisland_process_name'))
+        """依次尝试：删除 IFEO 劫持项，直接启动启动器，绕过启动器直接启动主程序，
+        改名启动，复制到随机目录启动，修改为 .com 后缀启动。 成功返回 True ，失败返回 False"""
+        Exec.remove_ifeo(self.db.path.get("classisland_process_name"))
 
-        classisland_path = self.db.path.get('classisland_path')
-        classisland_launcher_name = self.db.path.get('classisland_launcher_name')
-        classisland_launcher_path = os.path.join(classisland_path, classisland_launcher_name)
+        classisland_path = self.db.path.get("classisland_path")
+        classisland_launcher_name = self.db.path.get("classisland_launcher_name")
+        classisland_launcher_path = os.path.join(
+            classisland_path, classisland_launcher_name
+        )
         classisland_process_path = self._find_classisland_app_path()
         # 文件丢失就不尝试启动
-        if not classisland_process_path or not os.path.exists(classisland_launcher_path):
+        if not classisland_process_path or not os.path.exists(
+            classisland_launcher_path
+        ):
             return False
         # 直接启动启动器
-        if(Exec.start(classisland_launcher_path)):
+        if Exec.start(classisland_launcher_path):
             return True
-        Log.warn('启动启动器失败，尝试直接启动主程序 ~')
+        Log.warn("启动启动器失败，尝试直接启动主程序 ~")
         # 绕过启动器直接启动主程序
-        if(Exec.start(classisland_process_path)):
+        if Exec.start(classisland_process_path):
             return True
-        Log.warn('直接启动主程序失败，尝试逃逸式启动 ~')
+        Log.warn("直接启动主程序失败，尝试逃逸式启动 ~")
 
         self._cleanup_old_escape_dirs()
-        random_classisland_path = tempfile.mkdtemp(prefix='cig_')
+        random_classisland_path = tempfile.mkdtemp(prefix="cig_")
         is_success = False
         escape_process_name = None
         try:
             # 复制整个安装目录到随机目录
-            shutil.copytree(classisland_path, random_classisland_path, dirs_exist_ok=True)
-            random_classisland_launcher_path = os.path.join(random_classisland_path, classisland_launcher_name)
-            random_classisland_process_path = os.path.join(random_classisland_path,
-                                                           os.path.relpath(classisland_process_path, classisland_path))
+            shutil.copytree(
+                classisland_path, random_classisland_path, dirs_exist_ok=True
+            )
+            random_classisland_launcher_path = os.path.join(
+                random_classisland_path, classisland_launcher_name
+            )
+            random_classisland_process_path = os.path.join(
+                random_classisland_path,
+                os.path.relpath(classisland_process_path, classisland_path),
+            )
             # 直接启动
-            if(Exec.start(random_classisland_launcher_path)):
+            if Exec.start(random_classisland_launcher_path):
                 is_success = True
                 return True
-            if(Exec.start(random_classisland_process_path)):
+            if Exec.start(random_classisland_process_path):
                 is_success = True
                 return True
-            Log.warn('目录逃逸启动失败 ~')
+            Log.warn("目录逃逸启动失败 ~")
             # 改名启动：复制随机目录里的主程序为随机名 .exe
-            random_file_name = self._random_name() + '.exe'
-            shutil.copy2(random_classisland_process_path, os.path.join(random_classisland_path, random_file_name))
-            if(Exec.start(os.path.join(random_classisland_path, random_file_name))):
+            random_file_name = self._random_name() + ".exe"
+            shutil.copy2(
+                random_classisland_process_path,
+                os.path.join(random_classisland_path, random_file_name),
+            )
+            if Exec.start(os.path.join(random_classisland_path, random_file_name)):
                 is_success = True
                 escape_process_name = random_file_name
                 return True
-            Log.warn('重命名启动失败 ~')
+            Log.warn("重命名启动失败 ~")
             # 修改为.com后缀启动
-            random_com_name = CLASSISLAND_PROCESS_NAME.replace('.exe', '.com')
-            shutil.copy2(random_classisland_process_path, os.path.join(random_classisland_path, random_com_name))
-            if(Exec.start(os.path.join(random_classisland_path, random_com_name))):
+            random_com_name = CLASSISLAND_PROCESS_NAME.replace(".exe", ".com")
+            shutil.copy2(
+                random_classisland_process_path,
+                os.path.join(random_classisland_path, random_com_name),
+            )
+            if Exec.start(os.path.join(random_classisland_path, random_com_name)):
                 is_success = True
                 escape_process_name = random_com_name
                 return True
             # 复制主程序为随机名 .com 启动
-            random_com_name = self._random_name() + '.com'
-            shutil.copy2(random_classisland_process_path, os.path.join(random_classisland_path, random_com_name))
-            if(Exec.start(os.path.join(random_classisland_path, random_com_name))):
+            random_com_name = self._random_name() + ".com"
+            shutil.copy2(
+                random_classisland_process_path,
+                os.path.join(random_classisland_path, random_com_name),
+            )
+            if Exec.start(os.path.join(random_classisland_path, random_com_name)):
                 is_success = True
                 escape_process_name = random_com_name
                 return True
         except Exception as e:
-            Log.error(f'启动时出错，错误是：{e}')
+            Log.error(f"启动时出错，错误是：{e}")
         finally:
             if is_success and escape_process_name:
-                self.db.path['classisland_path'] = random_classisland_path
-                self.db.path['classisland_process_name'] = escape_process_name
+                self.db.path["classisland_path"] = random_classisland_path
+                self.db.path["classisland_process_name"] = escape_process_name
             elif not is_success:
                 # 启动失败，清理文件
                 shutil.rmtree(random_classisland_path, ignore_errors=True)
-        Log.warn('所有启动方法均失败。')
+        Log.warn("所有启动方法均失败。")
         return False
 
     # 关闭ClassIsland
     def kill_classisland(self):
-        '关闭Classisland。 成功返回True，失败返回False'
-        if not Exec.kill_process(self.db.path.get('classisland_process_name')):
-            Log.info('关闭失败')
+        "关闭Classisland。 成功返回True，失败返回False"
+        if not Exec.kill_process(self.db.path.get("classisland_process_name")):
+            Log.info("关闭失败")
             return False
         return True
-    
+
     # 重启ClassIsland
     def reboot_classisland(self):
-        '重启Classisland。 成功返回True，失败返回False'
+        "重启Classisland。 成功返回True，失败返回False"
         if not self.kill_classisland():
-            Log.info('重启失败')
+            Log.info("重启失败")
             return False
         time.sleep(3)
         if not self.start_classisland():
-            Log.info('重启失败')
+            Log.info("重启失败")
             return False
-        Log.info('重启成功')
+        Log.info("重启成功")
         return True

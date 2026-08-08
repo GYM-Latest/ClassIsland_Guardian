@@ -3,22 +3,23 @@
 # 基于 grintor/win_graceful_shutdown (GPL-3.0) 修改
 # https://github.com/grintor/win_graceful_shutdown
 
-import os
-import win32con
-import win32api
-import win32gui
-import sys
-import time
-import threading
 import atexit
-import signal
 import ctypes
+import os
+import signal
+import sys
+import threading
+import time
+
+import win32api
+import win32con
+import win32gui
 
 from utils.exec import Exec
 
 # you can override these variables in the main script if you want the windows shutdown screen to say something else
 APPNAME = os.path.basename(__file__)
-SHUTDOWN_MESSAGE = f'{APPNAME} is shutting down...'
+SHUTDOWN_MESSAGE = f"{APPNAME} is shutting down..."
 
 # you can override these variables in the main script if you want a different return code than 0xc000013a for any shutdown request
 RETURN_CODE_CTRL_C_EVENT = -1073741510
@@ -35,8 +36,9 @@ RETURN_CODE_WM_ENDSESSION = -1073741510
 EXIT_HANDLERS_RUNNING = False
 EXIT_REASON = None
 
-ucrtbase = ctypes.CDLL('ucrtbase')
-c_raise = ucrtbase['raise']
+ucrtbase = ctypes.CDLL("ucrtbase")
+c_raise = ucrtbase["raise"]
+
 
 def window_thread():
     hinst = win32api.GetModuleHandle(None)
@@ -47,14 +49,16 @@ def window_thread():
     def wndproc(hwnd, message, event_id, session_id):
         global EXIT_REASON
         if message == win32con.WM_CLOSE:
-            print('进程结束请求已被拦截。')
+            print("进程结束请求已被拦截。")
             return 0
 
         if message == win32con.WM_DESTROY:
-            print('进程结束请求已被拦截。')
+            print("进程结束请求已被拦截。")
             return 0
 
-        if message == win32con.WM_ENDSESSION: # WM_ENDSESSION gets called by windows once WM_QUERYENDSESSION returns True
+        if (
+            message == win32con.WM_ENDSESSION
+        ):  # WM_ENDSESSION gets called by windows once WM_QUERYENDSESSION returns True
             EXIT_REASON = win32con.WM_ENDSESSION
             Exec.unmake_process_critical()
             sys.exit(0)
@@ -63,33 +67,37 @@ def window_thread():
             # Windows will kill a process after 5 seconds unless it calls ShutdownBlockReasonCreate
             # the SHUTDOWN_MESSAGE here will be displayed on the shutdown screen to the user along with the APPNAME
             # unless the atexit handlers finish in less than 5 seconds
-            ctypes.windll.user32.ShutdownBlockReasonCreate(hwnd, ctypes.c_wchar_p(SHUTDOWN_MESSAGE))
-            return True # must return True for WM_ENDSESSION will be called
+            ctypes.windll.user32.ShutdownBlockReasonCreate(
+                hwnd, ctypes.c_wchar_p(SHUTDOWN_MESSAGE)
+            )
+            return True  # must return True for WM_ENDSESSION will be called
 
-    messageMap = { 
-        win32con.WM_QUERYENDSESSION:    wndproc,
-        win32con.WM_ENDSESSION:         wndproc,
-        win32con.WM_DESTROY:            wndproc,
-        win32con.WM_CLOSE:              wndproc,
+    messageMap = {
+        win32con.WM_QUERYENDSESSION: wndproc,
+        win32con.WM_ENDSESSION: wndproc,
+        win32con.WM_DESTROY: wndproc,
+        win32con.WM_CLOSE: wndproc,
     }
 
     wndclass.lpfnWndProc = messageMap
 
-    hwnd = win32gui.CreateWindowEx(win32con.WS_EX_LEFT,
-        win32gui.RegisterClass(wndclass), 
-        APPNAME, 
-        0, 
-        0, 
-        0, 
-        win32con.CW_USEDEFAULT, 
-        win32con.CW_USEDEFAULT, 
-        0, 
-        0, 
-        hinst, 
-        None
+    hwnd = win32gui.CreateWindowEx(
+        win32con.WS_EX_LEFT,
+        win32gui.RegisterClass(wndclass),
+        APPNAME,
+        0,
+        0,
+        0,
+        win32con.CW_USEDEFAULT,
+        win32con.CW_USEDEFAULT,
+        0,
+        0,
+        hinst,
+        None,
     )
-    #print(hwnd)
-    win32gui.PumpMessages() # blocks until PostQuitMessage() is called
+    # print(hwnd)
+    win32gui.PumpMessages()  # blocks until PostQuitMessage() is called
+
 
 def first_exit():
     # if is possible for two instances of the exit handlers to run. For example,
@@ -105,7 +113,9 @@ def signal_handler(sig, frame):
     global EXIT_REASON
     if not EXIT_HANDLERS_RUNNING:
         RETURN_CODE = 0
-        atexit.register(first_exit) # will cause EXIT_HANDLERS_RUNNING to be true as soon as sys.exit() is called.
+        atexit.register(
+            first_exit
+        )  # will cause EXIT_HANDLERS_RUNNING to be true as soon as sys.exit() is called.
 
         if sig == signal.SIGINT:
             EXIT_REASON = win32con.CTRL_C_EVENT
@@ -124,6 +134,7 @@ def signal_handler(sig, frame):
 
         sys.exit(RETURN_CODE)
 
+
 def ConsoleCtrlHandler(sig):
     global EXIT_REASON
     if sig == win32con.CTRL_CLOSE_EVENT:
@@ -135,9 +146,9 @@ def ConsoleCtrlHandler(sig):
             # so we have to use our monkey-patched atexit module to run each exit handler manually
             # note that this cannot take longer than 5 seconds or the OS kills the process
             for registered_function in reversed(atexit.registered_functions):
-                func = registered_function['func']
-                args = registered_function['args']
-                kwargs = registered_function['kwargs']
+                func = registered_function["func"]
+                args = registered_function["args"]
+                kwargs = registered_function["kwargs"]
                 if args and kwargs:
                     func(*args, **kwargs)
                 if args and not kwargs:
@@ -148,7 +159,7 @@ def ConsoleCtrlHandler(sig):
                     func()
             os._exit(RETURN_CTRL_CLOSE_EVENT)
         else:
-            while True: # same logic as WM_ENDSESSION, need to wait for the exit handlers to finish
+            while True:  # same logic as WM_ENDSESSION, need to wait for the exit handlers to finish
                 time.sleep(1)
     if sig == win32con.CTRL_C_EVENT:
         # if you put a sys.exit() here, python will print "ConsoleCtrlHandler function failed" before exiting
@@ -158,13 +169,15 @@ def ConsoleCtrlHandler(sig):
         # if you put a sys.exit() here, python will print "ConsoleCtrlHandler function failed" before exiting
         pass
 
+
 def init():
-    patch_atexit() # we monkey-patch atexit so that we can manually run the exit handlers later if we have to
+    patch_atexit()  # we monkey-patch atexit so that we can manually run the exit handlers later if we have to
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGBREAK, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     win32api.SetConsoleCtrlHandler(ConsoleCtrlHandler, True)
     threading.Thread(target=window_thread, daemon=True).start()
+
 
 def patch_atexit():
     atexit.origional_register = atexit.register
@@ -173,14 +186,19 @@ def patch_atexit():
 
     def atexit_register_new(func, *args, **kwargs):
         atexit.origional_register(func, *args, **kwargs)
-        atexit.registered_functions.append({'args': args, 'kwargs': kwargs, 'func': func})
+        atexit.registered_functions.append(
+            {"args": args, "kwargs": kwargs, "func": func}
+        )
 
     def atexit_unregister_new(func):
         atexit.origional_unregister(func)
         # remove all items from the registered_functions list in which the func is the same
-        atexit.registered_functions[:] = [item for item in atexit.registered_functions if item['func'] != func]
+        atexit.registered_functions[:] = [
+            item for item in atexit.registered_functions if item["func"] != func
+        ]
 
     atexit.register = atexit_register_new
     atexit.unregister = atexit_unregister_new
+
 
 init()
