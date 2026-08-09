@@ -182,15 +182,18 @@ class Process:
             shutil.copytree(
                 classisland_path, escape_classisland_path, dirs_exist_ok=True
             )
-            random_classisland_launcher_path = os.path.join(
+            escape_classisland_launcher_path = os.path.join(
                 escape_classisland_path, classisland_launcher_name
             )
-            random_classisland_process_path = os.path.join(
+            escape_classisland_process_path = os.path.join(
                 escape_classisland_path,
                 os.path.relpath(classisland_process_path, classisland_path),
             )
+            escape_classisland_app_path = os.path.dirname(
+                escape_classisland_process_path
+            )
             # 直接启动
-            if Exec.start(random_classisland_launcher_path):
+            if Exec.start(escape_classisland_launcher_path):
                 time.sleep(5)
                 status = self.check_classisland_status()
                 if status == 1:
@@ -198,7 +201,7 @@ class Process:
                     is_success = True
                     escape_classisland_process_name = CLASSISLAND_PROCESS_NAME
                     return True
-            if Exec.start(random_classisland_process_path):
+            if Exec.start(escape_classisland_process_path):
                 time.sleep(5)
                 status = self.check_classisland_status()
                 if status == 1:
@@ -210,10 +213,10 @@ class Process:
             # 改名启动
             random_file_name = self._random_name() + ".exe"
             shutil.copy2(
-                random_classisland_process_path,
-                os.path.join(escape_classisland_path, random_file_name),
+                escape_classisland_process_path,
+                os.path.join(escape_classisland_app_path, random_file_name),
             )
-            if Exec.start(os.path.join(escape_classisland_path, random_file_name)):
+            if Exec.start(os.path.join(escape_classisland_app_path, random_file_name)):
                 time.sleep(5)
                 status = Exec.check_process_status(random_file_name)
                 if status == 1:
@@ -225,10 +228,10 @@ class Process:
             # 修改为.com后缀启动
             random_com_name = CLASSISLAND_PROCESS_NAME.replace(".exe", ".com")
             shutil.copy2(
-                random_classisland_process_path,
-                os.path.join(escape_classisland_path, random_com_name),
+                escape_classisland_process_path,
+                os.path.join(escape_classisland_app_path, random_com_name),
             )
-            if Exec.start(os.path.join(escape_classisland_path, random_com_name)):
+            if Exec.start(os.path.join(escape_classisland_app_path, random_com_name)):
                 time.sleep(5)
                 status = Exec.check_process_status(random_com_name)
                 if status == 1:
@@ -239,10 +242,10 @@ class Process:
             # 复制主程序为随机名 .com 启动
             random_com_name = self._random_name() + ".com"
             shutil.copy2(
-                random_classisland_process_path,
-                os.path.join(escape_classisland_path, random_com_name),
+                escape_classisland_process_path,
+                os.path.join(escape_classisland_app_path, random_com_name),
             )
-            if Exec.start(os.path.join(escape_classisland_path, random_com_name)):
+            if Exec.start(os.path.join(escape_classisland_app_path, random_com_name)):
                 time.sleep(5)
                 status = Exec.check_process_status(random_com_name)
                 if status == 1:
