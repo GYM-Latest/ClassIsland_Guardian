@@ -68,13 +68,16 @@ class Snapshot:
             Log.error("恢复时出错，指定的快照文件不存在")
             return False
 
-    def create_snapshot(self):
-        "创建一个快照。 成功返回快照名称，失败返回False。"
+    def create_snapshot(self, name=None):
+        "创建一个快照。 可选传入一个备注信息(String)。成功返回快照名称，失败返回False。"
         if not self.Process.kill_classisland():
             return False
 
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        zip_name = f"snapshot_{timestamp}.zip"
+        if name:
+            zip_name = f"snapshot_{timestamp}_({name}).zip"
+        else:
+            zip_name = f"snapshot_{timestamp}.zip"
 
         try:
             if os.path.exists(self.classisland_path):
