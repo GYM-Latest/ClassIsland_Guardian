@@ -13,7 +13,7 @@ import win32event
 from apscheduler.schedulers.background import BackgroundScheduler
 from winerror import ERROR_ALREADY_EXISTS
 
-import utils.win_graceful_shutdown  # noqa: F401  导入即生效（副作用导入）
+import utils.win_graceful_shutdown
 from utils.bcd import Bcd
 from utils.database import Database
 from utils.exec import Exec
@@ -26,6 +26,7 @@ from utils.version import CODENAME, VERSION
 _instance_mutex = None
 
 
+# 检查并创建互斥锁
 def prevent_multiple_instances():
     """防止多实例启动，若已有实例则退出程序"""
     global _instance_mutex
@@ -178,6 +179,8 @@ def main():
         global is_reboot
         global is_config_running
         scheduler = BackgroundScheduler()
+        # 注入关机钩子模块，并给其调度器赋值
+        utils.win_graceful_shutdown.scheduler = scheduler
         # 热重启竞态检测标识
         is_reboot = False
         # config 运行状态标识

@@ -28,6 +28,9 @@ RETURN_CTRL_CLOSE_EVENT = -1073741510
 RETURN_CODE_WM_CLOSE = -1073741510
 RETURN_CODE_WM_ENDSESSION = -1073741510
 
+# 由主脚本在创建调度器后注入：utils.win_graceful_shutdown.scheduler = scheduler
+scheduler = None
+
 
 # you can manually send test signals from another python process like this:
 # import win32con, win32gui
@@ -61,6 +64,8 @@ def window_thread():
         ):  # WM_ENDSESSION gets called by windows once WM_QUERYENDSESSION returns True
             EXIT_REASON = win32con.WM_ENDSESSION
             Exec.unmake_process_critical()
+            if scheduler is not None:
+                scheduler.shutdown(True)
             sys.exit(0)
 
         if message == win32con.WM_QUERYENDSESSION:
@@ -81,7 +86,7 @@ def window_thread():
 
     wndclass.lpfnWndProc = messageMap
 
-    hwnd = win32gui.CreateWindowEx(
+    hwnd = win32gui.CreateWindowEx(  # noqa: F841
         win32con.WS_EX_LEFT,
         win32gui.RegisterClass(wndclass),
         APPNAME,
