@@ -132,3 +132,15 @@ class Exec:
         else:
             Log.error(f"操作失败，错误码: {result}")
             return False
+
+    # 检查指定进程数量
+    @staticmethod
+    def check_process_status(name):
+        "检查指定进程数量。 返回进程数量(int)"
+        import psutil
+
+        return sum(
+            1
+            for proc in psutil.process_iter(["name"])
+            if proc.info.get("name") and proc.info["name"].lower() == name
+        )
