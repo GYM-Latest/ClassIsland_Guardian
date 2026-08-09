@@ -60,6 +60,8 @@ def error_handler(event):
 def process_missing():
     if is_config_running:
         return
+
+    # 先尝试直接拉起
     if Process.start_classisland():
         Log.warn("尝试拉起ClassIsland。")
         time.sleep(5)
@@ -67,15 +69,28 @@ def process_missing():
         if status == 1:
             Log.info("拉起成功，ClassIsland进程正常 ~")
             return
+        Log.warn("拉起失败，ClassIsland进程仍未在运行，尝试恢复最新快照")
 
-    Log.warn("拉起失败，ClassIsland进程仍未在运行，尝试修复")
+    # 拉起失败后先恢复快照
+    # 先备份当前状态
+    Snapshot.create_snapshot("自动回滚前生成的快照")
+    # 忽略自动回滚备份，只恢复真正的历史快照
     snapshots = Snapshot.list_snapshot()
-    if snapshots and Snapshot.restore_snapshot(snapshots[0]):
-        Log.info("修复成功，尝试拉起ClassIsland ~")
-        if Process.start_classisland():
-            Log.info("拉起成功，ClassIsland进程正常 ~")
-            return
+    if(not snapshots):
+        snapshots = [s for s in snapshots if "自动回滚前生成的快照" not in s]
+        if snapshots and Snapshot.restore_snapshot(snapshots[0]):
+            Log.info("修复成功，尝试拉起ClassIsland ~")
+            if Process.start_classisland():
+                time.sleep(5)
+                status = Process.check_classisland_status()
+                if status == 1:
+                    Log.info("拉起成功，ClassIsland进程正常 ~")
+                    return
 
+    # 尝试逃逸式启动
+    if Process.escape_start_classisland():
+        Log.info("逃逸式启动成功！")
+        return
     Log.error("修复失败。")
 
 
