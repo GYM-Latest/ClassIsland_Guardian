@@ -78,8 +78,9 @@ class Exec:
         "结束指定进程。 传入要结束的进程名(string)。 成功返回True"
         import psutil
 
+        name = name.lower()
         for proc in psutil.process_iter(["name"]):
-            if proc.info["name"] == name:
+            if proc.info.get("name") and proc.info["name"].lower() == name:
                 try:
                     proc.kill()
                 except psutil.NoSuchProcess:
@@ -139,6 +140,7 @@ class Exec:
         "检查指定进程数量。 返回进程数量(int)"
         import psutil
 
+        name = name.lower()
         return sum(
             1
             for proc in psutil.process_iter(["name"])
