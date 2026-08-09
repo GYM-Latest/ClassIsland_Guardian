@@ -101,11 +101,19 @@ class Process:
             return False
         # 直接启动启动器
         if Exec.start(classisland_launcher_path):
-            return True
+            time.sleep(5)
+            status = self.check_classisland_status()
+            if status == 1:
+                Log.info("拉起成功，ClassIsland进程正常 ~")
+                return True
         Log.warn("启动启动器失败，尝试直接启动主程序 ~")
         # 绕过启动器直接启动主程序
         if Exec.start(classisland_process_path):
-            return True
+            time.sleep(5)
+            status = self.check_classisland_status()
+            if status == 1:
+                Log.info("拉起成功，ClassIsland进程正常 ~")
+                return True
         Log.warn("直接启动主程序失败。")
         return False
 
