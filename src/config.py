@@ -76,6 +76,7 @@ def main():
         # 保护设置
         if result == "1":
             while True:
+                Exec.clear_terminal()
                 if os.path.exists(
                     os.path.join(Exec.get_exe_path(), ".tempstopprotect")
                 ):
