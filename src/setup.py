@@ -227,7 +227,7 @@ def install():
     db.read_database()
     snapshot = Snapshot(db)
     snapshot.snapshot_path = os.path.join(guardian_path, "data", "snapshot")
-    print(f"创建了首个快照：{snapshot.create_snapshot()} ~")
+    print(f"创建了首个快照：{snapshot.create_snapshot('安装时生成的初始快照')} ~")
 
     # 创建预启动修复环境
     shutil.copy2(
