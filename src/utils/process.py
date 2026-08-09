@@ -142,7 +142,7 @@ class Process:
         """清理历史逃逸启动遗留的临时目录。 成功返回True，失败返回False"""
         classisland_path = self.db.path.get("classisland_path")
         try:
-            temp_path = tempfile.gettempdir()
+            temp_path = os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()
             for entry in os.listdir(temp_path):
                 if entry.startswith("cig_"):
                     path = os.path.join(temp_path, entry)
@@ -164,7 +164,9 @@ class Process:
         classisland_process_path = self._find_classisland_app_path()
 
         self._cleanup_old_escape_dirs()
-        escape_classisland_path = tempfile.mkdtemp(prefix="cig_")
+        escape_classisland_path = tempfile.mkdtemp(
+            prefix="cig_", dir=os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()
+        )
         is_success = False
         escape_classisland_process_name = None
         try:
