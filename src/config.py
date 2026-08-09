@@ -94,11 +94,13 @@ def main():
                 result = readchar.readchar()
                 if result == "1":
                     with open(
-                        os.path.join(Exec.get_exe_path(), ".tempstopprotect")
+                        os.path.join(Exec.get_exe_path(), ".tempstopprotect"), "w"
                     ) as f:
                         f.write("")
                 elif result == "2":
-                    with open(os.path.join(Exec.get_exe_path(), ".stopprotect")) as f:
+                    with open(
+                        os.path.join(Exec.get_exe_path(), ".stopprotect"), "w"
+                    ) as f:
                         f.write("")
                 elif result == "3":
                     if os.path.exists(
