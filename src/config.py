@@ -300,6 +300,7 @@ def main():
                 result = readchar.readchar()
                 if result == "1":
                     prepare_uninstall()
+                    readchar.readchar()
                     break
                 elif result == "0":
                     break
