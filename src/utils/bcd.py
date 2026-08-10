@@ -249,7 +249,7 @@ class Bcd:
                 Log.error("移除BCD启动项时出错，错误是：未能找到启动项GUID")
                 return False
             subprocess.run(
-                ["bcdedit", "/remove", recovery_guid, "/f"],
+                ["bcdedit", "/delete", recovery_guid],
                 check=True,
                 capture_output=True,
                 text=True,
