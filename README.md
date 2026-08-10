@@ -6,40 +6,37 @@
 有关 `ClassIsland` 的信息，敬请参阅 [
 ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 
-> [!WARNING]
-> **项目正处于早期开发阶段，核心功能尚未完整实现。**
+> [CAUTION]
+> **项目正处于早期测试阶段，稳定性欠佳。**
 >
-> 目前仅有 `file.sys` 的基础文件保护功能与Ring3守护部分可用。
-> 
-> 许多纸面功能仍在开发中，预启动修复环境尚未构建。
+> 目前已实现绝大多数功能，但该项目**缺少完整详细测试，大量操作尚未文档化**。
 >
-> **请勿将其视为可使用的产品。也请勿因为功能未完善提出Issue或Pr。** 欢迎先行 Star 关注，或通过 Issue 交流想法。
+> 请谨慎部署，如有必要，建议在**虚拟机**中部署。
+>
+> **请勿在生产环境部署！**如果在使用过程中遇到Bug，欢迎提交Issue。
 
 ## 功能
 
 ### 应用层守护
 - 监控 `ClassIsland.Desktop.exe` 进程状态，异常退出时自动拉起。
 - 支持手动创建、列出和恢复 `ClassIsland` 目录的历史快照，检测到目录异常时自动回滚。
-- 映像劫持对抗：启动前自动检测并清理针对 `ClassIsland` 与 `ClassIsland Guardian` 进程的恶意 Debugger 劫持项，确保程序不被劫持或禁用。
+- 映像劫持对抗：启动前自动检测并清理针对 `ClassIsland` 进程的恶意 Debugger 劫持项，确保程序不被劫持或禁用。
+- 逃逸式启动：监测安全软件或者权限软件对 'ClassIsland' 的拦截，并尝试绕过。
 - 完整的操作日志记录，便于排查问题。
 
 ### 驱动级守护
 - 保护 `ClassIsland Guardian` 程序本体与预启动修复文件不受破坏。
-- 阻止攻击者结束 `ClassIsland` 与 `ClassIsland Guardian` 进程。（开发中）
+- 阻止攻击者结束 `ClassIsland` 与 `ClassIsland Guardian` 进程。
 
-### 高级主动防御 （开发中）
-- 检测试图结束受保护进程的攻击者，并通过内核工作项异步终止攻击者进程。
-- 将保护驱动设置为 `SERVICE_BOOT_START`（启动等级 0），与 Windows 启动链深度绑定，提高驱动被恶意卸载的难度。
-
-### 预启动修复 （开发中）
+### 预启动修复
 - 独立于 Windows 系统的预启动环境，不依赖任何驱动。
 - 在 Windows 启动之前抢先运行。
-- 自动检测 `ClassIsland` 与 `ClassIsland Guardian` 是否损坏，发现损坏时自动从快照完成检查和修复。
+- 自动检测  `ClassIsland Guardian` 是否损坏，发现损坏时自动从快照完成检查和修复。
 
 ### 其他
-- 提供应用层守护、驱动级守护、高级主动防御三级保护机制，支持按需启用。
 - 通过完善的命令行菜单配置保护策略。
 - 支持密码锁定，保护保护策略不受篡改。
+- 还支持更多功能……
 
 ## 软件截图/演示视频 （截图待补充，敬请期待）
 ![config.exe的配置页面](https://cn.bing.com/th?id=OHR.LakeAtitlan_ZH-CN1920221893_UHD.jpg&pid=hp&w=1920)
@@ -66,15 +63,8 @@ ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 ### 项目结构
 
 - `src/`：Ring3 用户态 Python 源码。
-- `drivers/`：Ring0 内核驱动源码（`file.sys` / `process.sys` / `advanced.sys`）。
-
-### 快速编译
-
-在项目根目录执行编译脚本（需先安装依赖）：
-
-```bash
-build.bat
-```
+- `drivers/`：Ring0 内核驱动源码。
+- 'launcher/': Ring3 用户态启动器源码。
 
 
 ## 许可证
