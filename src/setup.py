@@ -114,14 +114,15 @@ def install():
         dirs_exist_ok=True,
     )
     # 复制并注册内核驱动
-    src_drivers = os.path.join(Exec.get_exe_path(), "drivers")
-    sys_dir = os.path.join(
+    src_drivers_path = os.path.join(Exec.get_exe_path(), "drivers")
+    drivers_path = os.path.join(
         os.environ.get("SystemRoot", r"C:\Windows"), "System32", "drivers"
     )
 
     # file
     shutil.copy2(
-        os.path.join(src_drivers, "file.sys"), os.path.join(sys_dir, "file.sys")
+        os.path.join(src_drivers_path, "file.sys"),
+        os.path.join(drivers_path, "file.sys"),
     )
     subprocess.run(
         [
@@ -133,7 +134,7 @@ def install():
             "start=",
             "boot",
             "binPath=",
-            os.path.join(sys_dir, "file.sys"),
+            os.path.join(drivers_path, "file.sys"),
         ],
         capture_output=True,
         check=True,
@@ -154,7 +155,8 @@ def install():
 
     # process
     shutil.copy2(
-        os.path.join(src_drivers, "process.sys"), os.path.join(sys_dir, "process.sys")
+        os.path.join(src_drivers_path, "process.sys"),
+        os.path.join(drivers_path, "process.sys"),
     )
     subprocess.run(
         [
@@ -166,7 +168,7 @@ def install():
             "start=",
             "boot",
             "binPath=",
-            os.path.join(sys_dir, "process.sys"),
+            os.path.join(drivers_path, "process.sys"),
         ],
         capture_output=True,
         check=True,
@@ -175,7 +177,8 @@ def install():
 
     # registry
     shutil.copy2(
-        os.path.join(src_drivers, "registry.sys"), os.path.join(sys_dir, "registry.sys")
+        os.path.join(src_drivers_path, "registry.sys"),
+        os.path.join(drivers_path, "registry.sys"),
     )
     subprocess.run(
         [
@@ -187,7 +190,7 @@ def install():
             "start=",
             "boot",
             "binPath=",
-            os.path.join(sys_dir, "registry.sys"),
+            os.path.join(drivers_path, "registry.sys"),
         ],
         capture_output=True,
         check=True,

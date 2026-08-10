@@ -43,7 +43,7 @@ class Bcd:
                 if id_match:
                     current_guid = id_match.group(1)
                 if (
-                    (stripped.startswith("description") or stripped.startswith("描述"))
+                    stripped.startswith(("description", "描述"))
                     and "Windows" in stripped
                     and "Boot Manager" not in stripped
                     and "Recovery" not in stripped
@@ -238,4 +238,23 @@ class Bcd:
             return True
         except Exception as e:
             Log.error(f"设置默认启动项时失败，错误是：{e}")
+            return False
+
+    @staticmethod
+    def remove_recovery_bcd():
+        """为 GuardianRecovery\recovery.wim 移除 BCD 启动项。 成功返回 True ，失败返回 False"""
+        try:
+            recovery_guid = Bcd._find_recovery_guid()
+            if not recovery_guid:
+                Log.error("移除BCD启动项时出错，错误是：未能找到启动项GUID")
+                return False
+            subprocess.run(
+                ["bcdedit", "/remove", recovery_guid, "/f"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            return True
+        except Exception as e:
+            Log.error(f"移除BCD启动项时出错，错误是：{e}")
             return False

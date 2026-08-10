@@ -23,6 +23,7 @@ jobs:
               run: |
                 pyinstaller --distpath temp -w -F -n guardian --copy-metadata apscheduler --hidden-import apscheduler.triggers.interval --hidden-import apscheduler.triggers.date --hidden-import apscheduler.executors.pool --hidden-import apscheduler.jobstores.memory --hidden-import tzlocal src\guardian.py
                 pyinstaller --distpath temp -F --copy-metadata readchar -n config src\config.py
+                pyinstaller --distpath temp -F --copy-metadata readchar -n uninstall src\uninstall.py
                 pyinstaller --distpath temp -F -n setup src\setup.py
                 pyinstaller --distpath temp -F -n recovery src\recovery.py
 
@@ -76,6 +77,7 @@ jobs:
                 mkdir app\recovery
                 copy /y temp\guardian.exe app\appdata\
                 copy /y temp\config.exe app\appdata\
+                copy /y temp\uninstall.exe app\appdata\
                 copy /y temp\setup.exe app
                 copy /y temp\recovery.wim app\recovery\
                 copy /y drivers\x64\Release\*.sys app\drivers\
