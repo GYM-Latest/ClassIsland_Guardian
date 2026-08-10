@@ -10,6 +10,8 @@ from utils.exec import Exec
 from utils.log import Log
 from utils.process import Process
 
+Log = Log("snapshot")
+
 
 class Snapshot:
     def __init__(self, db):

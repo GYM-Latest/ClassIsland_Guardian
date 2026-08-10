@@ -19,6 +19,8 @@ from utils.log import Log
 from utils.snapshot import Snapshot
 from utils.version import CODENAME, VERSION
 
+Log = Log("config")
+
 
 def check_password():
     while True:

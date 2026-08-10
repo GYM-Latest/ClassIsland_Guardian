@@ -6,6 +6,8 @@ import sqlite3
 
 from .log import Log
 
+Log = Log("database")
+
 
 # 封装数据库方法
 class Database:

@@ -10,6 +10,8 @@ from ctypes import wintypes
 
 from utils.log import Log
 
+Log = Log("exec")
+
 
 class Exec:
     # 获取当前运行目录
@@ -20,6 +22,12 @@ class Exec:
             return os.path.dirname(sys.executable)
         else:
             return os.path.dirname(os.path.abspath(__file__))
+
+    # 获取当前程序进程名
+    @staticmethod
+    def get_exe_name():
+        "返回当前程序进程名。"
+        return os.path.basename(sys.argv[0])
 
     # 映像劫持清除
     @staticmethod

@@ -12,6 +12,8 @@ import psutil
 from utils.exec import Exec
 from utils.log import Log
 
+Log = Log("process")
+
 # ClassIsland 主程序固定文件名
 CLASSISLAND_PROCESS_NAME = "ClassIsland.Desktop.exe"
 

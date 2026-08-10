@@ -13,6 +13,8 @@ from utils.exec import Exec
 from utils.log import Log
 from utils.version import CODENAME, VERSION
 
+Log = Log("recovery")
+
 
 def _find_guardianrecovery_path():
     """返回 GuardianRecovery 目录的路径(String)。如果未找到，返回False。"""

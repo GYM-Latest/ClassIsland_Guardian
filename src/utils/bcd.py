@@ -5,6 +5,8 @@ import subprocess
 
 from utils.log import Log
 
+Log = Log("bcd")
+
 
 class Bcd:
     @staticmethod

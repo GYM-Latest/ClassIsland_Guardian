@@ -181,6 +181,7 @@ def main():
         global Process
         global Snapshot
         global scheduler
+        global Log
 
         global is_reboot
         global is_config_running
@@ -197,6 +198,7 @@ def main():
             Bcd.set_recovery_bcd_start()
         Process = Process(db)
         Snapshot = Snapshot(db)
+        Log = Log("guardian")
         Exec.make_process_critical()
         Log.info(f"ClassIsland Guardian 已启动 ~ | 版本：{VERSION} ({CODENAME})")
 
