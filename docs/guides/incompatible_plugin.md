@@ -8,7 +8,7 @@
   该插件通过“自复制启动”方式将 ClassIsland 进程名修改为随机字符串，导致 `ClassIsland Guardian` 基于固定进程名的监控逻辑无法识别目标进程。
 
 - **影响**  
-  `ClassIsland Guardian` 的进程守护功能 **完全失效**，且会引发更多严重问题，如： 。
+  `ClassIsland Guardian` 的进程守护功能 **完全失效**，且会引发更多严重问题，如：`ClassIsland` 将被不断启动，无法正常工作。
 
 - **建议操作**  
   **二选一**：
