@@ -44,7 +44,7 @@ ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 ## 使用
 
 > [!IMPORTANT]  
-> **详细安装与配置说明请参阅 [ClassIsland Guardian 文档](https://github.com/SXSJGYM/ClassIsland_Guardian/wiki)。**
+> **详细安装与配置说明请参阅 [ClassIsland Guardian 文档](docs/guides/first_install.md)。**
 
 ### 系统要求：
 
@@ -58,7 +58,7 @@ ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 
 ## 开发/编译
 > [!IMPORTANT]  
-> **详细的开发环境配置与编译指南请参阅 [ClassIsland Guardian 开发文档](https://github.com/SXSJGYM/ClassIsland_Guardian/wiki/开发指南)。**
+> **详细的开发环境配置与编译指南请参阅 [ClassIsland Guardian 开发文档](_)。**
 
 ### 项目结构
 
