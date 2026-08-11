@@ -301,6 +301,7 @@ def main():
 [0] 退出""")
                 result = readchar.readchar()
                 if result == "1":
+                    check_password()
                     prepare_uninstall()
                     readchar.readchar()
                     break
