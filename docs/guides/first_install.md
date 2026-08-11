@@ -10,6 +10,9 @@
 > [!TIP]
 > `ClassIsland Guardian` 是 `ClassIsland` 的配套应用程序，如您未安装 `ClassIsland` ,可以访问 [https://www.classisland.tech/](https://www.classisland.tech/) 下载 `ClassIsland`
 
+> [!CAUTION]
+> `ClassIsland_Guardian` 与 `ClassIsland` 的部分插件 **不兼容**，贸然使用会造成不可预见的风险，请在安装前检查 [不兼容插件名单](incompatible_plugin.md) 并删除相关插件。
+
 ### 环境准备
 
 1. `ClassIsland Guardian` 需要 `Windows 10 x64` 及以上系统。
