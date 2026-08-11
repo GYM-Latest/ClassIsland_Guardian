@@ -123,7 +123,7 @@ def monitor_classisland():
     result = Process.find_classisland_pid()
     if result:
         try:
-            psutil.Process(result).wait(1)
+            psutil.Process(result).wait(4)
             if not scheduler.get_job("process_missing"):
                 scheduler.add_job(
                     process_missing,
