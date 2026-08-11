@@ -1,2 +1,2 @@
-VERSION = "0.20260726.1"
+VERSION = "0.1.0"
 CODENAME = "Mahiro"
