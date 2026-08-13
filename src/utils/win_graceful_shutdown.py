@@ -65,7 +65,15 @@ def window_thread():
             EXIT_REASON = win32con.WM_ENDSESSION
             Exec.unmake_process_critical()
             if scheduler is not None:
-                scheduler.shutdown(True)
+                scheduler.shutdown(False)
+            # 杀掉 Pyinstaller 引导器
+            if getattr(sys, "frozen", False):
+                try:
+                    import psutil
+
+                    psutil.Process(os.getppid()).kill()
+                except Exception:
+                    pass
             os._exit(0)
 
         if message == win32con.WM_QUERYENDSESSION:
