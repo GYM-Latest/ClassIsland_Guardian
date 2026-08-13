@@ -179,16 +179,18 @@ def identifier_monitor():
 # 更新线程
 def update():
     try:
-        latest_tag = Update.check_update('pre')
-        if(not latest_tag):
+        latest_tag = Update.check_update("pre")
+        if not latest_tag:
             return False
-        system_drive = os.environ.get('SystemDrive', 'C:')
-        guardianrecovery_path = os.path.join(system_drive, 'GuardianRecovery')
-        if latest_tag != VERSION and (not os.path.exists(os.path.join(guardianrecovery_path, '.update'))):
+        system_drive = os.environ.get("SystemDrive", "C:") + "\\"
+        guardianrecovery_path = os.path.join(system_drive, "GuardianRecovery")
+        if latest_tag != VERSION and (
+            not os.path.exists(os.path.join(guardianrecovery_path, ".update"))
+        ):
             Update.update()
     except Exception as e:
         # 更新失败是小事，不应触发热重启
-        Log.warn(f'更新失败，错误是：{e}')
+        Log.warn(f"更新失败，错误是：{e}")
 
 
 # 守护主循环
@@ -228,9 +230,14 @@ def main():
         # 删除更新标识符并调整启动顺序
         if os.path.exists(os.path.join(Exec.get_exe_path(), ".afterupdate")):
             os.remove(os.path.join(Exec.get_exe_path(), ".afterupdate"))
-            os.remove(os.path.join(os.environ.get('SystemDrive', 'C:'), 'GuardianRecovery', '.rollback'))
+            os.remove(
+                os.path.join(
+                    os.environ.get("SystemDrive", "C:") + "\\",
+                    "GuardianRecovery",
+                    ".rollback",
+                )
+            )
             Bcd.set_windows_bcd_start()
-
 
         # 守护主循环
         scheduler.add_job(
@@ -260,14 +267,14 @@ def main():
             seconds=7200,
             id="update",
             max_instances=1,
-        )                                                                                                                                                              
-        if not scheduler.get_job("update_boot"):                                                                                                                                                                              
-              scheduler.add_job(                                                                                                                                                                                                
-                  update,                                                                                                                                                                                                       
-                  "date",                                                                                                                                                                                                       
-                  id="update_boot",                                                                                                                                                                                             
-                  max_instances=1,                                                                                                                                                                                              
-              )       
+        )
+        if not scheduler.get_job("update_boot"):
+            scheduler.add_job(
+                update,
+                "date",
+                id="update_boot",
+                max_instances=1,
+            )
         scheduler.start()
         return
 

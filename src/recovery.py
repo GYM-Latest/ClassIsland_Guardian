@@ -169,7 +169,7 @@ def update_guardian():
         with open(os.path.join(guardianrecovery_path, ".rollback"), "w") as f:
             f.write("")
         with open(os.path.join(guardian_path, ".afterupdate"), "w") as f:
-            f.write("")    
+            f.write("")
         Log.info("更新状态标识符成功 ~")
 
     except Exception as e:
