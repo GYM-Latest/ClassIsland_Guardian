@@ -66,7 +66,7 @@ def window_thread():
             Exec.unmake_process_critical()
             if scheduler is not None:
                 scheduler.shutdown(True)
-            sys.exit(0)
+            os._exit(0)
 
         if message == win32con.WM_QUERYENDSESSION:
             # Windows will kill a process after 5 seconds unless it calls ShutdownBlockReasonCreate
