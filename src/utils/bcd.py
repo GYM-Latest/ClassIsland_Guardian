@@ -63,6 +63,28 @@ class Bcd:
             return False
 
     @staticmethod
+    def _find_boot_sdi(system_device):
+        """在系统中查找 boot.sdi 文件。 成功返回路径(String)，失败返回 False"""
+        candidates = [
+            f"{system_device}\\Windows\\Boot\\DVD\\PCAT\\boot.sdi",
+            f"{system_device}\\Windows\\Boot\\PCAT\\boot.sdi",
+            f"{system_device}\\Windows\\Boot\\DVD\\EFI\\boot.sdi",
+            f"{system_device}\\Windows\\Boot\\EFI\\boot.sdi",
+        ]
+        for path in candidates:
+            if os.path.exists(path):
+                return path
+        # 递归搜索 Windows\Boot 目录
+        boot_root = f"{system_device}\\Windows\\Boot"
+        try:
+            for root, _, files in os.walk(boot_root):
+                if "boot.sdi" in files:
+                    return os.path.join(root, "boot.sdi")
+        except Exception:
+            pass
+        return False
+
+    @staticmethod
     def create_recovery_bcd():
         """为 GuardianRecovery\\recovery.wim 创建 BCD 启动项。 成功返回对应启动项的GUID(String)，失败返回 False"""
         try:
@@ -121,7 +143,7 @@ class Bcd:
                 ["bcdedit", "/enum", "{ramdiskoptions}"],
                 capture_output=True,
                 text=True,
-                check=False,  # 非零返回是预期（对象不存在），stdout/stderr 已被解析使用
+                check=False,
             )
             out = (check.stdout or "") + (check.stderr or "")
             if "ramdisksdidevice" not in out or "ramdisksdipath" not in out:
@@ -164,24 +186,17 @@ class Bcd:
                     capture_output=True,
                     text=True,
                 )
-                # 复制 boot.sdi 文件
-                boot_sdi_source_path = (
-                    f"{system_device}\\Windows\\Boot\\DVD\\PCAT\\boot.sdi"
-                )
-                if not os.path.exists(boot_sdi_source_path):
-                    boot_sdi_source_path = (
-                        f"{system_device}\\Windows\\Boot\\PCAT\\boot.sdi"
-                    )
-                if not os.path.exists(boot_sdi_source_path):
-                    Log.error(
-                        "未找到系统内置 boot.sdi 文件，无法配置 {ramdiskoptions} ~"
-                    )
-                    return False
-                boot_sdi_target_path = f"{system_device}\\GuardianRecovery\\boot.sdi"
-                os.makedirs(f"{system_device}\\GuardianRecovery", exist_ok=True)
-                shutil.copy2(boot_sdi_source_path, boot_sdi_target_path)
-                Log.info("已复制 boot.sdi 文件 ~")
                 Log.info("已配置 {ramdiskoptions} SDI 路径 ~")
+
+            # 复制 boot.sdi 文件
+            boot_sdi_target_path = f"{system_device}\\GuardianRecovery\\boot.sdi"
+            boot_sdi_source_path = Bcd._find_boot_sdi(system_device)
+            if not boot_sdi_source_path:
+                Log.error("未找到系统内置 boot.sdi 文件，无法配置 {ramdiskoptions} ~")
+                return False
+            os.makedirs(f"{system_device}\\GuardianRecovery", exist_ok=True)
+            shutil.copy2(boot_sdi_source_path, boot_sdi_target_path)
+            Log.info("已复制 boot.sdi 文件 ~")
             # 添加到启动菜单
             subprocess.run(
                 ["bcdedit", "/displayorder", recovery_guid, "-addlast"], check=True

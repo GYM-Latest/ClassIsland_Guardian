@@ -237,7 +237,9 @@ def install():
         os.path.join(Exec.get_exe_path(), "recovery", "recovery.wim"),
         os.path.join(recovery_path, "recovery.wim"),
     )
-    Bcd.create_recovery_bcd()
+    if not Bcd.create_recovery_bcd():
+        print("创建预启动修复环境失败（BCD/boot.sdi） ~")
+        sys.exit(1)
 
     print("安装完成，重启后生效 ~")
 
