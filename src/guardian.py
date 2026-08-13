@@ -19,6 +19,7 @@ from utils.exec import Exec
 from utils.log import Log
 from utils.process import Process
 from utils.snapshot import Snapshot
+from utils.update import Update
 from utils.version import CODENAME, VERSION
 
 # 互斥锁句柄
@@ -28,10 +29,13 @@ _instance_mutex = None
 # 检查并创建互斥锁
 def prevent_multiple_instances():
     """防止多实例启动，若已有实例则退出程序"""
-    global _instance_mutex
-    mutex_name = "Global\\ClassIslandGuardian_Instance"
-    _instance_mutex = win32event.CreateMutex(None, False, mutex_name)
-    if win32api.GetLastError() == ERROR_ALREADY_EXISTS:
+    try:
+        global _instance_mutex
+        mutex_name = "Global\\ClassIslandGuardian_Instance"
+        _instance_mutex = win32event.CreateMutex(None, False, mutex_name)
+        if win32api.GetLastError() == ERROR_ALREADY_EXISTS:
+            sys.exit(0)
+    except:
         sys.exit(0)
 
 
@@ -172,6 +176,21 @@ def identifier_monitor():
             Log.error(f"检查config进程时出错，错误是：{e}")
 
 
+# 更新线程
+def update():
+    try:
+        latest_tag = Update.check_update('pre')
+        if(not latest_tag):
+            return False
+        system_drive = os.environ.get('SystemDrive', 'C:')
+        guardianrecovery_path = os.path.join(system_drive, 'GuardianRecovery')
+        if latest_tag != VERSION and (not os.path.exists(os.path.join(guardianrecovery_path, '.update'))):
+            Update.update()
+    except Exception as e:
+        # 更新失败是小事，不应触发热重启
+        Log.warn(f'更新失败，错误是：{e}')
+
+
 # 守护主循环
 def main():
     try:
@@ -202,8 +221,16 @@ def main():
         Exec.make_process_critical()
         Log.info(f"ClassIsland Guardian 已启动 ~ | 版本：{VERSION} ({CODENAME})")
 
+        # 删除可能存在的标识符
+        # 删除暂时停止保护标识符
         if os.path.exists(os.path.join(Exec.get_exe_path(), ".tempstopprotect")):
             os.remove(os.path.join(Exec.get_exe_path(), ".tempstopprotect"))
+        # 删除更新标识符并调整启动顺序
+        if os.path.exists(os.path.join(Exec.get_exe_path(), ".afterupdate")):
+            os.remove(os.path.join(Exec.get_exe_path(), ".afterupdate"))
+            os.remove(os.path.join(os.environ.get('SystemDrive', 'C:'), 'GuardianRecovery', '.rollback'))
+            Bcd.set_windows_bcd_start()
+
 
         # 守护主循环
         scheduler.add_job(
@@ -227,6 +254,20 @@ def main():
             id="identifier_monitor",
             max_instances=1,
         )
+        scheduler.add_job(
+            update,
+            "interval",
+            seconds=7200,
+            id="update",
+            max_instances=1,
+        )                                                                                                                                                              
+        if not scheduler.get_job("update_boot"):                                                                                                                                                                              
+              scheduler.add_job(                                                                                                                                                                                                
+                  update,                                                                                                                                                                                                       
+                  "date",                                                                                                                                                                                                       
+                  id="update_boot",                                                                                                                                                                                             
+                  max_instances=1,                                                                                                                                                                                              
+              )       
         scheduler.start()
         return
 
