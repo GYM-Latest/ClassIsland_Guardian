@@ -3,3 +3,4 @@ apscheduler==3.10.4
 pywin32==312
 prompt-toolkit==3.0.52
 readchar==4.2.2
+requests==2.34.2
