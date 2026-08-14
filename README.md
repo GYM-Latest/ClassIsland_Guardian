@@ -38,8 +38,10 @@ ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 - 支持密码锁定，保护保护策略不受篡改。
 - 还支持更多功能……
 
-## 软件截图/演示视频 （截图待补充，敬请期待）
-![config.exe的配置页面](https://cn.bing.com/th?id=OHR.LakeAtitlan_ZH-CN1920221893_UHD.jpg&pid=hp&w=1920)
+## 软件截图/短宣传片
+![config.exe的配置页面](https://cdn.luogu.com.cn/upload/image_hosting/0wmadd6q.png)
+
+[观看短宣传片 ->](https://www.bilibili.com/video/BV1DcgV6LEF7/)
 
 ## 使用
 
@@ -64,8 +66,19 @@ ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 
 - `src/`：Ring3 用户态 Python 源码。
 - `drivers/`：Ring0 内核驱动源码。
-- 'launcher/': Ring3 用户态启动器源码。
+- `launcher/`: Ring3 用户态启动器源码。
 
+
+## 社区衍生项目
+
+> [!NOTE]
+> 以下项目为社区爱好者独立维护，与 `GYM-Latest/ClassIsland_Guardian` 无官方关联。  
+> 如有 Bug 或使用问题，请直接前往对应仓库反馈，谢谢。
+
+- **[HickoryTrail/ClassIsland_Guardian_Sharp](https://github.com/HickoryTrail/ClassIsland_Guardian_Sharp)**: 
+   社区使用 `C#` 重写的版本，采用 `.NET 10 NativeAOT 技术栈` 。  
+  > 该项目由社区开发者使用 `VibeCoding` 完成重构，尚未经过详细测试，仅供学习参考。
+  
 
 ## 许可证
 

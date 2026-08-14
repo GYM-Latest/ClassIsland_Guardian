@@ -76,9 +76,9 @@ class Process:
         if not classisland_path:
             return False
         try:
-            return os.path.normcase(os.path.dirname(os.path.dirname(exe))) == os.path.normcase(
-                classisland_path
-            )
+            return os.path.normcase(
+                os.path.dirname(os.path.dirname(exe))
+            ) == os.path.normcase(classisland_path)
         except Exception:
             return False
 
