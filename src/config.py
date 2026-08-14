@@ -23,6 +23,8 @@ Log = Log("config")
 
 
 def check_password():
+    if not db.config.get("password"):
+        return True
     while True:
         Exec.clear_terminal()
         print("请输入管理员密码 ~\n")
@@ -136,8 +138,7 @@ def main():
     Snapshot = Snapshot(db)
 
     # 身份验证
-    if db.config.get("password"):
-        check_password()
+    check_password()
 
     # 显示主菜单
     while True:
