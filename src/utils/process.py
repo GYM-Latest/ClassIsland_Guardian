@@ -68,21 +68,49 @@ class Process:
         else:
             return False
 
+    def _is_real_classisland(self, exe):
+        "校验进程 exe 路径是否在 classisland_path 下。 真实返回 True，伪造返回 False"
+        if not exe:
+            return True
+        classisland_path = self.db.path.get("classisland_path")
+        if not classisland_path:
+            return False
+        try:
+            return os.path.normcase(os.path.dirname(os.path.dirname(exe))) == os.path.normcase(
+                classisland_path
+            )
+        except Exception:
+            return False
+
     # 检查ClassIsland进程数量并返回
     def check_classisland_status(self):
         "检查Classisland进程数量。 返回Classisland进程数量(int)"
-        return Exec.check_process_status(self.db.path.get("classisland_process_name"))
+        classisland_process_name = self.db.path.get("classisland_process_name").lower()
+        count = 0
+        for proc in psutil.process_iter(["name", "exe"]):
+            if (
+                proc.info.get("name")
+                and proc.info["name"].lower() == classisland_process_name
+            ):
+                if self._is_real_classisland(proc.info.get("exe")):
+                    count += 1
+                else:
+                    Log.warn(f"识别到疑似伪造的ClassIsland进程！详细信息：{proc.info}")
+        return count
 
     # 查找ClassIsland进程pid并返回
     def find_classisland_pid(self):
         "查找ClassIsland进程pid。 返回Classisland进程pid(int)，若未找到，返回False(bool)"
         classisland_process_name = self.db.path.get("classisland_process_name").lower()
-        for proc in psutil.process_iter(["name", "pid"]):
+        for proc in psutil.process_iter(["name", "pid", "exe"]):
             if (
                 proc.info.get("name")
                 and proc.info["name"].lower() == classisland_process_name
             ):
-                return proc.info["pid"]
+                if self._is_real_classisland(proc.info.get("exe")):
+                    return proc.info["pid"]
+                else:
+                    Log.warn(f"识别到疑似伪造的ClassIsland进程！详细信息：{proc.info}")
         return False
 
     # 启动ClassIsland
