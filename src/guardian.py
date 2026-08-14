@@ -4,6 +4,7 @@
 import os
 import sys
 import threading
+import time
 from datetime import datetime
 
 import psutil
@@ -63,6 +64,19 @@ def error_handler(event):
 def process_missing():
     if is_config_running:
         return
+
+    # 在拉起前，先检查 ClassIsland 是否有后备进程
+    # 如果有，说明在重启，直接返回
+    if Process.check_classisland_status() != 0:
+        Log.info("识别到 ClassIsland 正在重启，忽略......")
+        return
+
+    # 进程消失后短暂观察，等待可能的主动重启
+    for _ in range(4):
+        time.sleep(0.5)
+        if Process.check_classisland_status() != 0:
+            Log.info("识别到 ClassIsland 正在重启，忽略......")
+            return
 
     # 先尝试直接拉起
     Log.warn("尝试拉起ClassIsland。")
