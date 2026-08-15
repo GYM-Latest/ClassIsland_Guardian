@@ -96,6 +96,11 @@ class Process:
                     count += 1
                 else:
                     Log.warn(f"识别到疑似伪造的ClassIsland进程！详细信息：{proc.info}")
+                    try:
+                        proc.kill()
+                        Log.info("已经成功清除伪造 ClassIsland 进程 ~")
+                    except Exception as e:
+                        Log.warn(f"清除伪造进程时失败，错误是：{e}")
         return count
 
     # 查找ClassIsland进程pid并返回
@@ -111,6 +116,11 @@ class Process:
                     return proc.info["pid"]
                 else:
                     Log.warn(f"识别到疑似伪造的ClassIsland进程！详细信息：{proc.info}")
+                    try:
+                        proc.kill()
+                        Log.info("已经成功清除伪造 ClassIsland 进程 ~")
+                    except Exception as e:
+                        Log.warn(f"清除伪造进程时失败，错误是：{e}")
         return False
 
     # 启动ClassIsland
