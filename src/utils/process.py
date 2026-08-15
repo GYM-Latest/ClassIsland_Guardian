@@ -107,13 +107,14 @@ class Process:
     def find_classisland_pid(self):
         "查找ClassIsland进程pid。 返回Classisland进程pid(int)，若未找到，返回False(bool)"
         classisland_process_name = self.db.path.get("classisland_process_name").lower()
+        classisland_pid = None
         for proc in psutil.process_iter(["name", "pid", "exe"]):
             if (
                 proc.info.get("name")
                 and proc.info["name"].lower() == classisland_process_name
             ):
                 if self._is_real_classisland(proc.info.get("exe")):
-                    return proc.info["pid"]
+                    classisland_pid = proc.info["pid"]
                 else:
                     Log.warn(f"识别到疑似伪造的ClassIsland进程！详细信息：{proc.info}")
                     try:
@@ -121,7 +122,10 @@ class Process:
                         Log.info("已经成功清除伪造 ClassIsland 进程 ~")
                     except Exception as e:
                         Log.warn(f"清除伪造进程时失败，错误是：{e}")
-        return False
+        if classisland_pid:
+            return classisland_pid
+        else:
+            return False
 
     # 启动ClassIsland
     def start_classisland(self):
