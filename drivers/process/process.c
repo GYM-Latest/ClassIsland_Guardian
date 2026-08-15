@@ -99,7 +99,7 @@ NTSTATUS DriverEntry(
 
     // 配置 OB_CALLBACK_REGISTRATION
     UNICODE_STRING altitude;
-    RtlInitUnicodeString(&altitude, L"328000.1");
+    RtlInitUnicodeString(&altitude, L"325600.1");
 
     OB_CALLBACK_REGISTRATION cbReg = { 0 };
     cbReg.Version = OB_FLT_REGISTRATION_VERSION;

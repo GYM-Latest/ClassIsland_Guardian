@@ -143,7 +143,7 @@ def install():
         winreg.HKEY_LOCAL_MACHINE,
         r"SYSTEM\CurrentControlSet\Services\file\Instances\file_Instance",
     )
-    winreg.SetValueEx(key, "Altitude", 0, winreg.REG_SZ, "328000")
+    winreg.SetValueEx(key, "Altitude", 0, winreg.REG_SZ, "325600")
     winreg.SetValueEx(key, "Flags", 0, winreg.REG_DWORD, 0)
     winreg.CloseKey(key)
     key = winreg.CreateKey(

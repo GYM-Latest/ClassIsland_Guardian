@@ -77,7 +77,7 @@ ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 
 - **[HickoryTrail/ClassIsland_Guardian_Sharp](https://github.com/HickoryTrail/ClassIsland_Guardian_Sharp)**: 
    社区使用 `C#` 重写的版本，采用 `.NET 10 NativeAOT 技术栈` 。  
-  > 该项目由社区开发者使用 `VibeCoding` 完成重构，尚未经过详细测试，仅供学习参考。
+  > 该项目由社区开发者 100% 使用 `VibeCoding` 完成重构，尚未经过详细测试，仅供学习参考。
   
 
 ## 许可证

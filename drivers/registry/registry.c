@@ -116,7 +116,7 @@ NTSTATUS DriverEntry(
     }
 
     UNICODE_STRING altitude;
-    RtlInitUnicodeString(&altitude, L"328000.2");
+    RtlInitUnicodeString(&altitude, L"325600.2");
 
     // 注册 CmRegisterCallbackEx
     status = CmRegisterCallbackEx(
