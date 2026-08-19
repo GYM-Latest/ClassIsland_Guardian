@@ -27,6 +27,14 @@ ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 ### 驱动级守护
 - 保护 `ClassIsland Guardian` 程序本体与预启动修复文件不受破坏。
 - 阻止攻击者结束 `ClassIsland` 与 `ClassIsland Guardian` 进程。
+> [!CAUTION] 
+> **驱动级守护不支持Secure Boot**
+>
+> 如果执意在开启 `Secure Boot` 使用，会导致无法正常引导。
+>
+> 或在关闭 `Secure Boot` 后使用。
+>
+> 未来将添加检测，如不支持 `驱动级守护` 则仅保留其他支持项目
 
 ### 预启动修复
 - 独立于 Windows 系统的预启动环境，不依赖任何驱动。
