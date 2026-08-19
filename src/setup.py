@@ -26,6 +26,7 @@ class config:
         self.classisland_path = None
         self.guardian_path = None
         self.password = ""
+        self.driver_protection = False
 
 
 def find_classisland():
@@ -113,89 +114,92 @@ def install():
         copy_function=_copy_and_log,
         dirs_exist_ok=True,
     )
-    # 复制并注册内核驱动
-    src_drivers_path = os.path.join(Exec.get_exe_path(), "drivers")
-    drivers_path = os.path.join(
-        os.environ.get("SystemRoot", r"C:\Windows"), "System32", "drivers"
-    )
+    # 复制并注册内核驱动（仅当用户选择安装驱动级守护时，测试模式需用户自行开启）
+    if config.driver_protection:
+        src_drivers_path = os.path.join(Exec.get_exe_path(), "drivers")
+        drivers_path = os.path.join(
+            os.environ.get("SystemRoot", r"C:\Windows"), "System32", "drivers"
+        )
 
-    # file
-    shutil.copy2(
-        os.path.join(src_drivers_path, "file.sys"),
-        os.path.join(drivers_path, "file.sys"),
-    )
-    subprocess.run(
-        [
-            "sc",
-            "create",
-            "file",
-            "type=",
-            "kernel",
-            "start=",
-            "boot",
-            "binPath=",
+        # file
+        shutil.copy2(
+            os.path.join(src_drivers_path, "file.sys"),
             os.path.join(drivers_path, "file.sys"),
-        ],
-        capture_output=True,
-        check=True,
-    )
-    key = winreg.CreateKey(
-        winreg.HKEY_LOCAL_MACHINE,
-        r"SYSTEM\CurrentControlSet\Services\file\Instances\file_Instance",
-    )
-    winreg.SetValueEx(key, "Altitude", 0, winreg.REG_SZ, "325600")
-    winreg.SetValueEx(key, "Flags", 0, winreg.REG_DWORD, 0)
-    winreg.CloseKey(key)
-    key = winreg.CreateKey(
-        winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Services\file\Instances"
-    )
-    winreg.SetValueEx(key, "DefaultInstance", 0, winreg.REG_SZ, "file_Instance")
-    winreg.CloseKey(key)
-    print("file.sys 已就绪 ~")
+        )
+        subprocess.run(
+            [
+                "sc",
+                "create",
+                "file",
+                "type=",
+                "kernel",
+                "start=",
+                "boot",
+                "binPath=",
+                os.path.join(drivers_path, "file.sys"),
+            ],
+            capture_output=True,
+            check=True,
+        )
+        key = winreg.CreateKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SYSTEM\CurrentControlSet\Services\file\Instances\file_Instance",
+        )
+        winreg.SetValueEx(key, "Altitude", 0, winreg.REG_SZ, "325600")
+        winreg.SetValueEx(key, "Flags", 0, winreg.REG_DWORD, 0)
+        winreg.CloseKey(key)
+        key = winreg.CreateKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SYSTEM\CurrentControlSet\Services\file\Instances",
+        )
+        winreg.SetValueEx(key, "DefaultInstance", 0, winreg.REG_SZ, "file_Instance")
+        winreg.CloseKey(key)
+        print("file.sys 已就绪 ~")
 
-    # process
-    shutil.copy2(
-        os.path.join(src_drivers_path, "process.sys"),
-        os.path.join(drivers_path, "process.sys"),
-    )
-    subprocess.run(
-        [
-            "sc",
-            "create",
-            "process",
-            "type=",
-            "kernel",
-            "start=",
-            "boot",
-            "binPath=",
+        # process
+        shutil.copy2(
+            os.path.join(src_drivers_path, "process.sys"),
             os.path.join(drivers_path, "process.sys"),
-        ],
-        capture_output=True,
-        check=True,
-    )
-    print("process.sys 已就绪 ~")
+        )
+        subprocess.run(
+            [
+                "sc",
+                "create",
+                "process",
+                "type=",
+                "kernel",
+                "start=",
+                "boot",
+                "binPath=",
+                os.path.join(drivers_path, "process.sys"),
+            ],
+            capture_output=True,
+            check=True,
+        )
+        print("process.sys 已就绪 ~")
 
-    # registry
-    shutil.copy2(
-        os.path.join(src_drivers_path, "registry.sys"),
-        os.path.join(drivers_path, "registry.sys"),
-    )
-    subprocess.run(
-        [
-            "sc",
-            "create",
-            "registry",
-            "type=",
-            "kernel",
-            "start=",
-            "boot",
-            "binPath=",
+        # registry
+        shutil.copy2(
+            os.path.join(src_drivers_path, "registry.sys"),
             os.path.join(drivers_path, "registry.sys"),
-        ],
-        capture_output=True,
-        check=True,
-    )
-    print("registry.sys 已就绪 ~")
+        )
+        subprocess.run(
+            [
+                "sc",
+                "create",
+                "registry",
+                "type=",
+                "kernel",
+                "start=",
+                "boot",
+                "binPath=",
+                os.path.join(drivers_path, "registry.sys"),
+            ],
+            capture_output=True,
+            check=True,
+        )
+        print("registry.sys 已就绪 ~")
+        print("驱动级守护已就绪，重启后生效 ~")
 
     # 注册 guardian 守护进程服务
     launcher_exe_path = os.path.join(guardian_path, "launcher.exe")
@@ -288,6 +292,25 @@ def configure():
                 print("唔... 两次密码不一样呢，再试一次吧 ~")
                 time.sleep(1)
         else:
+            break
+
+    # 询问是否安装驱动级守护
+    while True:
+        Exec.clear_terminal()
+        print("是否安装驱动级守护？\n")
+        print("驱动级守护可以阻止攻击者结束 ClassIsland 与守护进程，")
+        print("需要开启 Windows 测试模式（重启后生效）以加载未签名驱动，")
+        print(
+            "测试模式需在安装前自行开启（管理员运行 bcdedit /set testsigning on）且不支持开启了 Secure Boot 的设备。\n"
+        )
+        print("输入 y 安装驱动级守护，输入 n 仅使用应用层守护")
+        print("输入 n 仅使用应用层守护")
+        choice = input(">")
+        if choice == "y":
+            config.driver_protection = True
+            break
+        elif choice == "n":
+            config.driver_protection = False
             break
 
     # 开始安装
