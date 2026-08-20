@@ -121,5 +121,9 @@
 
     时，说明安装完成。此时，重新启动电脑 `ClassIsland Guardian` 方可生效。
 
-> [!NOTE]
-> 若安装了驱动级守护，安装完成后系统将保持在 `Windows 测试模式`（`testsigning on`）以加载未签名驱动；如需关闭测试模式，驱动级守护将不再生效。
+> [!CAUTION]
+> 若安装了驱动级守护，安装完成后系统将保持在 `Windows 测试模式`（`testsigning on`）以加载未签名驱动；
+> 
+> **绝对禁止** 关闭 `Windows 测试模式`，这会导致 `Windows` 无法正常启动。
+>
+> 如果你已经失误关闭了 `Windows 测试模式` 并且 `Windows` 已经无法正常启动，请参见 [此文档](/docs/guides/repair_initiate.md)
