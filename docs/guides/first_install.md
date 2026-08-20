@@ -13,31 +13,30 @@
 > [!CAUTION]
 > `ClassIsland_Guardian` 与 `ClassIsland` 的部分插件 **不兼容**，贸然使用会造成不可预见的风险，请在安装前检查 [不兼容插件名单](incompatible_plugin.md) 并删除相关插件。
 
+> [!NOTE]
+> 需要在多台计算机上安装？或者需要在班级多媒体上隐蔽安装？
+> 该项目支持 [无人值守安装](unattended_install.md) 。
+
 ### 环境准备
 
 1. `ClassIsland Guardian` 需要 `Windows 10 x64` 及以上系统。
-2. 在开始安装前，请确保开启了 `测试模式` 。
+2. 安装程序会按需自动开启 `测试模式`：安装驱动级守护时自动开启并重启，仅应用层守护则无需测试模式。**无需手动执行 `bcdedit /set testsigning on`。**
+3. 部分杀软可能会对 `ClassIsland Guardian` 误报，建议在安装前 **关闭所有杀软**。
 
-    ```powershell
-    # 在管理员 Cmd/Powershell 中执行（需重启后生效）
-    bcdedit /set testsigning on
-    ```
+## 安装 
 
-3. 部分杀软可能会对 `ClassIsland Guardian` 误报，建议在安装前 **关闭所有杀软**
-
-### 安装
-
-1. 前往 [Github-release 页面](https://github.com/SXSJGYM/ClassIsland_Guardian/releases) 下载最新发行版。
+1. 前往 [Github-release 页面](https://github.com/GYM-Latest/ClassIsland_Guardian/releases) 下载最新发行版。
 2. 解压下载到的 `.zip` 包到一个 **独立目录**。
-3. **以管理员权限** 运行 `powershell/cmd`。并在 `powershell/cmd` 中启动 `setup.exe`。这样做是为了在 setup 报错退出时方便捕获到其堆栈。
+3. **以管理员权限** 运行 `powershell/cmd`，并在其中启动 `setup.exe`。这样做是为了在 setup 报错退出时方便捕获到其堆栈。
 4. 开始安装：
 
     ```text
     ClassIsland Guardian Installer
-    版本 0.20260726.1 | Mahiro
+    版本 v0.3.0 | Mahiro
     欢迎，该配置向导会帮你完成 ClassIsland Guardian 的安装与配置 ~
 
-    要开始，请输入 y 再按 ENTER
+    要开始安装，请输入 y 再按 ENTER
+    要生成无人值守安装配置文件，请输入 c 再按 ENTER
     要退出向导，请输入 n 再按 ENTER
     >
     ```
@@ -53,7 +52,7 @@
     ```
 
     安装程序会尝试自动识别 `ClassIsland` 的安装路径，如果识别失败，请手动填写 **正确的** 目录。
-    
+
     回车，进入下一步。
 
 6. 设置管理密码：
@@ -76,7 +75,21 @@
 
     回车，进入下一步。
 
-7. 确认安装：
+7. 选择守护方式：
+
+    ```text
+    是否安装驱动级守护？
+
+    驱动级守护可以阻止攻击者结束 ClassIsland 与守护进程，
+    将会自动开启 Windows 测试模式并重启以加载未签名驱动。
+    输入 y 安装驱动级守护，输入 n 仅使用应用层守护
+    >
+    ```
+
+    - 输入 `n`：仅应用层守护，无需测试模式，**不会自动重启**。
+    - 输入 `y`：驱动级守护，安装程序会 **自动开启测试模式** 并在安装开始后重启电脑，重启后自动继续安装。
+
+8. 确认安装：
 
     ```text
     所有配置都填好啦 ~
@@ -89,14 +102,24 @@
 
     输入 `install` 并回车以开始安装。
 
-    安装过程时需 2~3 分钟，请耐心等待。
+    - **应用层守护**（步骤 7 输入 `n`）：安装过程需 2~3 分钟，请耐心等待。
+    - **驱动级守护**（步骤 7 输入 `y`）：安装程序自动开启 `Windows 测试模式` 并创建自启动任务，随后提示重启：
 
-8. 完成安装
+      ```text
+      安装程序需要重启才能继续，将在倒计时结束后重启 ~
+      ```
 
-    当看到
-    ``` text
+      电脑重启后，安装程序会 **自动继续** 完成安装，无需任何操作。
+
+9. 完成安装
+
+    看到
+
+    ```text
     安装完成，重启后生效 ~
     ```
-    时，说明安装完成。
-    
-    此时，重新启动电脑 `ClassIsland Guardian` 方可生效
+
+    时，说明安装完成。此时，重新启动电脑 `ClassIsland Guardian` 方可生效。
+
+> [!NOTE]
+> 若安装了驱动级守护，安装完成后系统将保持在 `Windows 测试模式`（`testsigning on`）以加载未签名驱动；如需关闭测试模式，驱动级守护将不再生效。

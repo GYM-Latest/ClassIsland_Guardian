@@ -64,7 +64,10 @@ ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 
 ### 下载与安装
 
-- [GitHub Releases](https://github.com/SXSJGYM/ClassIsland_Guardian/releases)
+- [GitHub Releases](https://github.com/GYM-Latest/ClassIsland_Guardian/releases)
+
+> [!TIP]
+> 需要在多台计算机上批量安装？请看 [无人值守安装文档](docs/guides/unattended_install.md) 。
 
 ## 开发/编译
 > [!IMPORTANT]  

@@ -85,7 +85,7 @@ def prepare_install_drivers():
     for i in range(15, 0, -1):
         print(i, end=" ", flush=True)
         time.sleep(1)
-    subprocess.run(["shutdown", "/r", "/t", "1"])
+    subprocess.run(["shutdown", "/r", "/t", "1"], check=False)
 
 
 def install():
