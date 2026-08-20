@@ -4,6 +4,7 @@
 import ctypes
 import getpass
 import hashlib
+import json
 import os
 import shutil
 import subprocess
@@ -21,12 +22,37 @@ from utils.snapshot import Snapshot
 from utils.version import CODENAME, VERSION
 
 
-class config:
+class Config:
     def __init__(self):
         self.classisland_path = None
-        self.guardian_path = None
         self.password = ""
         self.driver_protection = False
+        self.temp = False
+
+    @staticmethod
+    def generate_install_configuration_file():
+        """生成无人值守安装配置文件（JSON）"""
+        path = os.path.join(Exec.get_exe_path(), "install_config.json")
+        data = {
+            "version": VERSION,
+            "classisland_path": Config.classisland_path,
+            "password": Config.password,
+            "driver_protection": Config.driver_protection,
+            "temp": Config.temp,
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+
+    @staticmethod
+    def read_install_configuration_file():
+        """读取无人值守安装配置文件（JSON）"""
+        path = os.path.join(Exec.get_exe_path(), "install_config.json")
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        Config.classisland_path = data.get("classisland_path")
+        Config.password = data.get("password", "")
+        Config.driver_protection = data.get("driver_protection", False)
+        Config.temp = data.get("temp", False)
 
 
 def find_classisland():
@@ -74,10 +100,10 @@ def install():
     db = Database(guardian_path)
     db.new_database(
         {
-            "classisland_path": config.classisland_path,
+            "classisland_path": Config.classisland_path,
             "guardian_path": guardian_path,
-            "password": hashlib.sha256(config.password.encode("utf-8")).hexdigest()
-            if config.password
+            "password": hashlib.sha256(Config.password.encode("utf-8")).hexdigest()
+            if Config.password
             else "",
         }
     )
@@ -85,10 +111,10 @@ def install():
     db = Database(recovery_path)
     db.new_database(
         {
-            "classisland_path": config.classisland_path,
+            "classisland_path": Config.classisland_path,
             "guardian_path": guardian_path,
-            "password": hashlib.sha256(config.password.encode("utf-8")).hexdigest()
-            if config.password
+            "password": hashlib.sha256(Config.password.encode("utf-8")).hexdigest()
+            if Config.password
             else "",
         }
     )
@@ -115,7 +141,7 @@ def install():
         dirs_exist_ok=True,
     )
     # 复制并注册内核驱动（仅当用户选择安装驱动级守护时，测试模式需用户自行开启）
-    if config.driver_protection:
+    if Config.driver_protection:
         src_drivers_path = os.path.join(Exec.get_exe_path(), "drivers")
         drivers_path = os.path.join(
             os.environ.get("SystemRoot", r"C:\Windows"), "System32", "drivers"
@@ -249,19 +275,27 @@ def install():
 
 
 def configure():
+    # 安装模式
+    mode = "install"
+
     # 起始页面
     while True:
         Exec.clear_terminal()
         print("ClassIsland Guardian Installer")
         print(f"版本 {VERSION} | {CODENAME}")
         print("欢迎，该配置向导会帮你完成 ClassIsland Guardian 的安装与配置 ~\n")
-        print("要开始，请输入 y 再按 ENTER")
+        print("要开始安装，请输入 y 再按 ENTER")
+        print("要生成无人值守安装配置文件，请输入 c 再按 ENTER")
         print("要退出向导，请输入 n 再按 ENTER")
         result = input(">")
         if result == "y":
+            mode = "install"
             break
         elif result == "n":
             return
+        elif result == "c":
+            mode = "config"
+            break
 
     # 选择classisland路径
     while True:
@@ -270,7 +304,7 @@ def configure():
         print("输好后按 ENTER 就好 ~")
         path = prompt(">", default=(find_classisland() or ""))
         if path != "":
-            config.classisland_path = path
+            Config.classisland_path = path
             break
         else:
             print("唔... 路径不能为空哦 ~")
@@ -286,7 +320,7 @@ def configure():
             print("确认密码")
             password_twice = getpass.getpass(">")
             if password == password_twice:
-                config.password = password
+                Config.password = password
                 break
             else:
                 print("唔... 两次密码不一样呢，再试一次吧 ~")
@@ -300,29 +334,68 @@ def configure():
         print("是否安装驱动级守护？\n")
         print("驱动级守护可以阻止攻击者结束 ClassIsland 与守护进程，")
         print("需要开启 Windows 测试模式（重启后生效）以加载未签名驱动，")
-        print(
-            "测试模式需在安装前自行开启（管理员运行 bcdedit /set testsigning on）且不支持开启了 Secure Boot 的设备。\n"
-        )
         print("输入 y 安装驱动级守护，输入 n 仅使用应用层守护")
-        print("输入 n 仅使用应用层守护")
         choice = input(">")
         if choice == "y":
-            config.driver_protection = True
+            Config.driver_protection = True
             break
         elif choice == "n":
-            config.driver_protection = False
+            Config.driver_protection = False
             break
 
-    # 开始安装
-    while True:
-        Exec.clear_terminal()
-        print("所有配置都填好啦 ~\n")
-        print("输入 install 再按 ENTER 就可以开始安装了")
-        print("安装过程中 ClassIsland 会稍微歇一下下 ~")
-        print("如果安装过程中杀软的大手发力了，麻烦关一下，非常感谢！ ~")
-        if input(">") == "install":
-            install()
-            break
+    # 直接安装应用层守护
+    if mode == "install" and Config.driver_protection == False:
+        while True:
+            Exec.clear_terminal()
+            print("所有配置都填好啦 ~\n")
+            print("输入 install 再按 ENTER 就可以开始安装了")
+            print("安装过程中 ClassIsland 会稍微歇一下下 ~")
+            print("如果安装过程中杀软的大手发力了，麻烦关一下，非常感谢！ ~")
+            if input(">") == "install":
+                install()
+                break
+    # 生成配置
+    elif mode == "config":
+        while True:
+            Exec.clear_terminal()
+            Config.generate_install_configuration_file()
+            print("已经生成无人值守安装配置文件（JSON）~\n")
+            print("配置文件包含 ClassIsland 路径、管理密码与驱动级守护选项，")
+            print("其中密码为明文，请妥善保管，不要泄露给他人哦 ~\n")
+            input("按回车关闭安装向导......")
+            return
+    # 安装驱动级保护
+    if mode == "install" and Config.driver_protection == True:
+        while True:
+            Exec.clear_terminal()
+            print("所有配置都填好啦 ~\n")
+            print("输入 install 再按 ENTER 就可以开始安装了")
+            print("安装过程中 ClassIsland 会稍微歇一下下 ~")
+            print("如果安装过程中杀软的大手发力了，麻烦关一下，非常感谢！ ~")
+            if input(">") == "install":
+                break
+        print("将在倒计时结束后开始安装 ~")
+        for i in range(5, 0, -1):
+            print(i, end=" ", flush=True)
+            time.sleep(1)
+        if not Bcd.set_testmode():
+            print("启动测试模式失败，无法开启驱动级保护。")
+            input("按回车关闭安装向导......")
+            return
+        if not Exec.set_schtasks(
+            "ClassIslandGuardianInstall",
+            os.path.join(Exec.get_exe_path(), Exec.get_exe_name()),
+        ):
+            print("设置计划任务失败，无法开启驱动级保护。")
+            input("按回车关闭安装向导......")
+            return
+        Config.temp = True
+        Config.generate_install_configuration_file()
+        print("安装程序需要重启才能继续，将在倒计时结束后重启 ~")
+        for i in range(15, 0, -1):
+            print(i, end=" ", flush=True)
+            time.sleep(1)
+        subprocess.run(["shutdown", "/r", "/t", "1"])
 
 
 def main():
@@ -338,10 +411,18 @@ def main():
         )
         sys.exit(0)
 
-    global config
-    config = config()
+    global Config
+    Config = Config()
 
-    configure()
+    if os.path.exists(Exec.get_exe_path(), "install_config.json"):
+        Config.read_install_configuration_file()
+        install()
+        if Config.temp:
+            os.remove(os.path.join(Exec.get_exe_path(), "install_config.json"))
+            Exec.unset_schtasks("ClassIslandGuardianInstall")
+        return
+    else:
+        configure()
 
 
 if __name__ == "__main__":

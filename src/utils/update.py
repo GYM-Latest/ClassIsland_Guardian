@@ -1,14 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 GYM_Latest
 
-import requests
 import os
-import zipfile
 import shutil
+import zipfile
 
+import requests
+
+from utils.bcd import Bcd
 from utils.exec import Exec
 from utils.log import Log
-from utils.bcd import Bcd
 
 Log = Log("update")
 

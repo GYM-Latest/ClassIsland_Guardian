@@ -154,3 +154,45 @@ class Exec:
             for proc in psutil.process_iter(["name"])
             if proc.info.get("name") and proc.info["name"].lower() == name
         )
+
+    # 设置计划任务
+    @staticmethod
+    def set_schtasks(name, path):
+        "为指定的项创建计划任务。 传入任务名(string)与可执行文件路径(string)，成功返回 True ，失败返回 False"
+        try:
+            subprocess.run(
+                [
+                    "schtasks",
+                    "/Create",
+                    "/TN",
+                    name,
+                    "/TR",
+                    path,
+                    "/SC",
+                    "ONLOGON",
+                    "/RL",
+                    "HIGHEST",
+                    "/F",
+                ],
+                capture_output=True,
+                check=True,
+            )
+            return True
+        except Exception as e:
+            print(f"创建失败，错误是：{e}")
+            return False
+
+    # 移除计划任务
+    @staticmethod
+    def unset_schtasks(name):
+        "为指定的项移除计划任务。 传入任务名称(String)，成功返回 True ，失败返回 False"
+        try:
+            subprocess.run(
+                ["schtasks", "/delete", "/TN", name, "/F"],
+                capture_output=True,
+                check=True,
+            )
+            return True
+        except Exception as e:
+            print(f"移除失败，错误是：{e}")
+            return False

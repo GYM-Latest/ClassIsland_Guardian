@@ -278,3 +278,13 @@ class Bcd:
         except Exception as e:
             Log.error(f"移除BCD启动项时出错，错误是：{e}")
             return False
+
+    @staticmethod
+    def set_testmode():
+        "开启测试模式。 成功返回 True ，失败返回 False 。"
+        try:
+            subprocess.run(["bcdedit", "/set", "testsigning", "on"], check=True)
+            return True
+        except Exception as e:
+            Log.warn(f"开启测试模式时出错，错误是：{e}")
+            return False
