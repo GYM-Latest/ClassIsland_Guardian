@@ -25,10 +25,18 @@ ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 - 完整的操作日志记录，便于排查问题。
 
 ### 驱动级守护
+
+> [!WARNING]
+> 驱动级守护不支持在开启了 `Secure Boot` 的设备上使用。且需开启 `测试模式` 。
+
 - 保护 `ClassIsland Guardian` 程序本体与预启动修复文件不受破坏。
 - 阻止攻击者结束 `ClassIsland` 与 `ClassIsland Guardian` 进程。
 
 ### 预启动修复
+
+> [!WARNING]
+> 预启动修复不支持在系统磁盘分区上开启了 `Bitlocker` 的设备上使用。
+
 - 独立于 Windows 系统的预启动环境，不依赖任何驱动。
 - 在 Windows 启动之前抢先运行。
 - 自动检测  `ClassIsland Guardian` 是否损坏，发现损坏时自动从快照完成检查和修复。
