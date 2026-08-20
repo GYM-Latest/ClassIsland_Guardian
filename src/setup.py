@@ -27,32 +27,29 @@ class Config:
         self.classisland_path = None
         self.password = ""
         self.driver_protection = False
-        self.temp = False
 
     @staticmethod
-    def generate_install_configuration_file():
-        """生成无人值守安装配置文件（JSON）"""
-        path = os.path.join(Exec.get_exe_path(), "install_config.json")
+    def generate_install_configuration_file(name):
+        """生成安装配置文件（JSON）"""
+        path = os.path.join(Exec.get_exe_path(), name)
         data = {
             "version": VERSION,
             "classisland_path": Config.classisland_path,
             "password": Config.password,
             "driver_protection": Config.driver_protection,
-            "temp": Config.temp,
         }
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
     @staticmethod
-    def read_install_configuration_file():
-        """读取无人值守安装配置文件（JSON）"""
-        path = os.path.join(Exec.get_exe_path(), "install_config.json")
+    def read_install_configuration_file(name):
+        """读取安装配置文件（JSON）"""
+        path = os.path.join(Exec.get_exe_path(), name)
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         Config.classisland_path = data.get("classisland_path")
         Config.password = data.get("password", "")
         Config.driver_protection = data.get("driver_protection", False)
-        Config.temp = data.get("temp", False)
 
 
 def find_classisland():
@@ -64,6 +61,31 @@ def find_classisland():
             classisland_path = os.path.dirname(os.path.dirname(exe_path))
             return classisland_path
     return None
+
+
+def prepare_install_drivers():
+    print("将在倒计时结束后开始安装 ~")
+    for i in range(5, 0, -1):
+        print(i, end=" ", flush=True)
+        time.sleep(1)
+
+    if not Bcd.set_testmode():
+        print("启动测试模式失败，无法开启驱动级保护。")
+        input("按回车关闭安装向导......")
+        return
+    if not Exec.set_schtasks(
+        "ClassIslandGuardianInstall",
+        os.path.join(Exec.get_exe_path(), Exec.get_exe_name()),
+    ):
+        print("设置计划任务失败，无法开启驱动级保护。")
+        input("按回车关闭安装向导......")
+        return
+    Config.generate_install_configuration_file("install_temp.json")
+    print("安装程序需要重启才能继续，将在倒计时结束后重启 ~")
+    for i in range(15, 0, -1):
+        print(i, end=" ", flush=True)
+        time.sleep(1)
+    subprocess.run(["shutdown", "/r", "/t", "1"])
 
 
 def install():
@@ -140,7 +162,7 @@ def install():
         copy_function=_copy_and_log,
         dirs_exist_ok=True,
     )
-    # 复制并注册内核驱动（仅当用户选择安装驱动级守护时，测试模式需用户自行开启）
+    # 复制并注册内核驱动（仅当用户选择安装驱动级守护时）
     if Config.driver_protection:
         src_drivers_path = os.path.join(Exec.get_exe_path(), "drivers")
         drivers_path = os.path.join(
@@ -333,7 +355,7 @@ def configure():
         Exec.clear_terminal()
         print("是否安装驱动级守护？\n")
         print("驱动级守护可以阻止攻击者结束 ClassIsland 与守护进程，")
-        print("需要开启 Windows 测试模式（重启后生效）以加载未签名驱动，")
+        print("将会自动开启 Windows 测试模式并重启以加载未签名驱动。")
         print("输入 y 安装驱动级守护，输入 n 仅使用应用层守护")
         choice = input(">")
         if choice == "y":
@@ -358,14 +380,14 @@ def configure():
     elif mode == "config":
         while True:
             Exec.clear_terminal()
-            Config.generate_install_configuration_file()
+            Config.generate_install_configuration_file("install_config.json")
             print("已经生成无人值守安装配置文件（JSON）~\n")
             print("配置文件包含 ClassIsland 路径、管理密码与驱动级守护选项，")
             print("其中密码为明文，请妥善保管，不要泄露给他人哦 ~\n")
             input("按回车关闭安装向导......")
             return
     # 安装驱动级保护
-    if mode == "install" and Config.driver_protection == True:
+    elif mode == "install" and Config.driver_protection:
         while True:
             Exec.clear_terminal()
             print("所有配置都填好啦 ~\n")
@@ -374,28 +396,7 @@ def configure():
             print("如果安装过程中杀软的大手发力了，麻烦关一下，非常感谢！ ~")
             if input(">") == "install":
                 break
-        print("将在倒计时结束后开始安装 ~")
-        for i in range(5, 0, -1):
-            print(i, end=" ", flush=True)
-            time.sleep(1)
-        if not Bcd.set_testmode():
-            print("启动测试模式失败，无法开启驱动级保护。")
-            input("按回车关闭安装向导......")
-            return
-        if not Exec.set_schtasks(
-            "ClassIslandGuardianInstall",
-            os.path.join(Exec.get_exe_path(), Exec.get_exe_name()),
-        ):
-            print("设置计划任务失败，无法开启驱动级保护。")
-            input("按回车关闭安装向导......")
-            return
-        Config.temp = True
-        Config.generate_install_configuration_file()
-        print("安装程序需要重启才能继续，将在倒计时结束后重启 ~")
-        for i in range(15, 0, -1):
-            print(i, end=" ", flush=True)
-            time.sleep(1)
-        subprocess.run(["shutdown", "/r", "/t", "1"])
+        prepare_install_drivers()
 
 
 def main():
@@ -414,13 +415,18 @@ def main():
     global Config
     Config = Config()
 
-    if os.path.exists(Exec.get_exe_path(), "install_config.json"):
-        Config.read_install_configuration_file()
+    if os.path.exists(os.path.join(Exec.get_exe_path(), "install_temp.json")):
+        Config.read_install_configuration_file("install_temp.json")
         install()
-        if Config.temp:
-            os.remove(os.path.join(Exec.get_exe_path(), "install_config.json"))
-            Exec.unset_schtasks("ClassIslandGuardianInstall")
-        return
+        os.remove(os.path.join(Exec.get_exe_path(), "install_temp.json"))
+        Exec.unset_schtasks("ClassIslandGuardianInstall")
+    elif os.path.exists(os.path.join(Exec.get_exe_path(), "install_config.json")):
+        Config.read_install_configuration_file("install_config.json")
+        if Config.driver_protection == True:
+            prepare_install_drivers()
+            return
+        else:
+            install()
     else:
         configure()
 
