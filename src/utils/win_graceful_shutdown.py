@@ -14,12 +14,16 @@ import time
 import win32api
 import win32con
 import win32gui
+from apscheduler.schedulers.base import STATE_STOPPED
 
 from utils.exec import Exec
+from utils.log import Log
+
+Log = Log('shutdown')
 
 # you can override these variables in the main script if you want the windows shutdown screen to say something else
 APPNAME = os.path.basename(__file__)
-SHUTDOWN_MESSAGE = f"{APPNAME} is shutting down..."
+SHUTDOWN_MESSAGE = "ClassIsland Guardian 正在退出，请稍等..."
 
 # you can override these variables in the main script if you want a different return code than 0xc000013a for any shutdown request
 RETURN_CODE_CTRL_C_EVENT = -1073741510
@@ -52,11 +56,12 @@ def window_thread():
     def wndproc(hwnd, message, event_id, session_id):
         global EXIT_REASON
         if message == win32con.WM_CLOSE:
-            print("进程结束请求已被拦截。")
+            Log.info("WM_CLOSE 结束请求已被拦截。")
             return 0
 
         if message == win32con.WM_DESTROY:
-            print("进程结束请求已被拦截。")
+            Log.info("收到 WM_DESTROY 通知，尝试重启主进程。")
+            Exec.start(os.path.join(Exec.get_exe_path(),Exec.get_exe_name()))
             return 0
 
         if (
@@ -64,7 +69,8 @@ def window_thread():
         ):  # WM_ENDSESSION gets called by windows once WM_QUERYENDSESSION returns True
             EXIT_REASON = win32con.WM_ENDSESSION
             Exec.unmake_process_critical()
-            if scheduler is not None:
+            Log.info("系统正在关闭，Guardian正在退出...")
+            if scheduler is not None and scheduler.state != STATE_STOPPED:
                 scheduler.shutdown(False)
             # 杀掉 Pyinstaller 引导器
             if getattr(sys, "frozen", False):

@@ -10,22 +10,26 @@ from datetime import datetime
 import psutil
 import win32api
 import win32event
+from apscheduler.events import EVENT_JOB_ERROR
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.base import STATE_STOPPED
 from winerror import ERROR_ALREADY_EXISTS
 
 import utils.win_graceful_shutdown
 from utils.bcd import Bcd
 from utils.database import Database
 from utils.exec import Exec
-from utils.log import Log
-from utils.process import Process
-from utils.snapshot import Snapshot
+from utils.log import Log as LogClass
+from utils.process import Process as ProcessClass
+from utils.snapshot import Snapshot as SnapshotClass
 from utils.update import Update
 from utils.version import CODENAME, VERSION
 
 # 互斥锁句柄
 _instance_mutex = None
 
+# 热重启次数记录
+hot_reboot_time = 0
 
 # 检查并创建互斥锁
 def prevent_multiple_instances():
@@ -44,20 +48,31 @@ def prevent_multiple_instances():
 def hot_reboot():
     try:
         global is_reboot
+        global hot_reboot_time
         if not is_reboot:
             is_reboot = True
-            scheduler.shutdown(True)
+            if scheduler.state != STATE_STOPPED:
+                scheduler.shutdown(True)
+            if hot_reboot_time >= 5:
+                Log.info(f'热重启次数达到上限，不再重启并关闭进程。')
+                Exec.unmake_process_critical()
+                os._exit(0)
+            hot_reboot_time += 1
+            Log.info(f'这是第 {hot_reboot_time} 次热重启。')
             main()
     except:
         Exec.unmake_process_critical()
-        sys.exit()
+        os._exit(0)
 
 
 # 调度器错误处理函数
 def error_handler(event):
-    Log.error(f"任务 {event.job_id} 发生未被捕获的异常，错误是： {event.exception}")
-    Log.error("触发热重启 ~")
-    threading.Thread(target=hot_reboot, daemon=True).start()
+    try:
+        Log.error(f"任务 {event.job_id} 发生未被捕获的异常，错误是： {event.exception}")
+        scheduler.remove_job(event.job_id)
+        Log.info(f"成功禁用发生异常的任务：{event.job_id}，当前任务列表：{scheduler.get_jobs()}")
+    except Exception as e:
+        Log.error(f"禁用异常任务失败，错误是：{e}，当前任务列表：{scheduler.get_jobs()}")
 
 
 # 进程丢失后处理函数
@@ -79,12 +94,13 @@ def process_missing():
             return
 
     # 先尝试直接拉起
-    Log.warn("尝试拉起ClassIsland。")
+    Log.warn("检测到ClassIsland进程丢失，尝试拉起ClassIsland。")
     if Process.start_classisland():
         return
-    Log.warn("拉起失败，ClassIsland进程仍未在运行，尝试恢复最新快照")
+    Log.warn("拉起失败，ClassIsland进程仍未在运行。")
 
     # 拉起失败后先恢复快照
+    Log.warn(f'尝试恢复最新快照。')
     # 先备份当前状态
     Snapshot.create_snapshot("自动回滚前生成的快照")
     # 忽略自动回滚备份，只恢复真正的历史快照
@@ -92,11 +108,14 @@ def process_missing():
     if snapshots:
         snapshots = [s for s in snapshots if "自动回滚前生成的快照" not in s]
         if snapshots and Snapshot.restore_snapshot(snapshots[0]):
-            Log.info("修复成功，尝试拉起ClassIsland ~")
+            Log.info(f"成功恢复到：{snapshots[0]}")
             if Process.start_classisland():
                 return
+        else:
+            Log.error('恢复快照时出错，错误是：没有可用快照')
 
     # 尝试逃逸式启动
+    Log.error('尝试逃逸式启动。')
     if Process.escape_start_classisland():
         Log.info("逃逸式启动成功！")
         return
@@ -203,15 +222,12 @@ def update():
         ):
             Update.update()
     except Exception as e:
-        # 更新失败是小事，不应触发热重启
         Log.warn(f"更新失败，错误是：{e}")
 
 
 # 守护主循环
 def main():
     try:
-        prevent_multiple_instances()
-
         global db
         global Process
         global Snapshot
@@ -221,6 +237,8 @@ def main():
         global is_reboot
         global is_config_running
         scheduler = BackgroundScheduler()
+        # 注册调度器错误监听
+        scheduler.add_listener(error_handler, EVENT_JOB_ERROR)
         # 注入关机钩子模块，并给其调度器赋值
         utils.win_graceful_shutdown.scheduler = scheduler
         # 热重启竞态检测标识
@@ -231,9 +249,9 @@ def main():
         db = Database(Exec.get_exe_path())
         if not db.read_database():
             Bcd.set_recovery_bcd_start()
-        Process = Process(db)
-        Snapshot = Snapshot(db)
-        Log = Log("guardian")
+        Process = ProcessClass(db)
+        Snapshot = SnapshotClass(db)
+        Log = LogClass("guardian")
         Exec.make_process_critical()
         Log.info(f"ClassIsland Guardian 已启动 ~ | 版本：{VERSION} ({CODENAME})")
 
@@ -295,6 +313,7 @@ def main():
     except Exception as e:
         try:
             Log.error(f"发生无法处理的错误：{e}")
+            Log.error(f"触发热重启 ~")
         except:
             logfile = os.path.join(
                 os.path.dirname(sys.executable)
@@ -304,10 +323,11 @@ def main():
             )
             with open(logfile, "a") as f:
                 f.write(f"{datetime.now()}: {e}\n")
-        # 延时尝试热重启，避免程序崩溃
+        # 尝试热重启，避免程序崩溃
         threading.Thread(target=hot_reboot, daemon=True).start()
 
 
 if __name__ == "__main__":
+    prevent_multiple_instances()
     main()
     threading.Event().wait()
