@@ -1,8 +1,21 @@
 name: Build ClassIsland Guardian
 on:
     workflow_dispatch:
+        inputs:
+            release:
+                description: 构建完成后创建 GitHub Release
+                type: boolean
+                default: false
+            prerelease:
+                description: 标记为预发布（tag 推送时默认 true）
+                type: boolean
+                default: true
     push:
       branches: [ "main" ]
+      tags: [ "v*" ]
+
+permissions:
+    contents: write
 
 jobs:
     build:
@@ -75,13 +88,13 @@ jobs:
                 mkdir app\drivers
                 mkdir app\appdata
                 mkdir app\recovery
-                copy /y temp\guardian.exe app\appdata\
-                copy /y temp\config.exe app\appdata\
-                copy /y temp\uninstall.exe app\appdata\
-                copy /y temp\setup.exe app
-                copy /y temp\recovery.wim app\recovery\
+                copy /y temp\guardian.exe app\appdata\guardian.exe
+                copy /y temp\config.exe app\appdata\config.exe
+                copy /y temp\uninstall.exe app\appdata\uninstall.exe
+                copy /y temp\setup.exe app\setup.exe
+                copy /y temp\recovery.wim app\recovery\recovery.wim
                 copy /y drivers\x64\Release\*.sys app\drivers\
-                copy /y launcher\bin\Release\launcher.exe app\appdata\
+                copy /y launcher\bin\Release\launcher.exe app\appdata\launcher.exe
               shell: cmd
 
             - name: Upload Build Artifact
@@ -90,3 +103,74 @@ jobs:
                   name: build-artifact
                   path: app
 
+    release:
+        needs: build
+        # tag 推送 v* 自动发布；手动 dispatch 勾选 release 也发布
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true')
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Download Build Artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: build-artifact
+                  path: app
+
+            - name: Prepare Release Info
+              id: info
+              shell: pwsh
+              run: |
+                  # 从源码读取版本与代号，保证发布名与代码一致
+                  $ver = (Select-String -Path src\utils\version.py -Pattern 'VERSION = "([^"]+)"').Matches[0].Groups[1].Value
+                  $codename = (Select-String -Path src\utils\version.py -Pattern 'CODENAME = "([^"]+)"').Matches[0].Groups[1].Value
+                  $tag = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}" } else { $ver }
+                  # tag 与版本不一致会导致更新循环（历史教训），tag 推送时强校验
+                  if ("${{ github.ref_type }}" -eq "tag" -and $tag -ne $ver) {
+                      throw "tag ($tag) 与 version.py ($ver) 不一致，拒绝发布"
+                  }
+                  # 从 CHANGELOG.md 提取本版本分节作为 release notes，缺失则用全文
+                  $changelog = Get-Content CHANGELOG.md -Raw
+                  $pattern = '(?ms)^## ' + [regex]::Escape($tag) + '(?: - .*)?$.*?(?=^## |\z)'
+                  $section = [regex]::Match($changelog, $pattern)
+                  $notes = if ($section.Success) { $section.Value } else { $changelog }
+                  $notes | Set-Content -Path release_notes.md -Encoding utf8
+                  "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "codename=$codename" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "zip=ClassIsland_Guardian_${ver}_${codename}.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  Write-Host "version=$ver codename=$codename tag=$tag"
+
+            - name: Package Zip
+              shell: pwsh
+              working-directory: app
+              run: |
+                  $zip = "../${{ steps.info.outputs.zip }}"
+                  zip -qr $zip .
+                  if ($LASTEXITCODE -ne 0) { throw "打包失败" }
+                  Write-Host "zip: $zip ($([math]::Round((Get-Item $zip).Length/1MB,1)) MB)"
+
+            - name: Create GitHub Release
+              shell: pwsh
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  $tag = "${{ steps.info.outputs.tag }}"
+                  # 幂等保护：同名 release/tag 已存在则报错，避免误覆盖
+                  if (gh release view $tag --json tagName 2>$null) {
+                      throw "Release $tag 已存在，请删除后重试"
+                  }
+                  $prerelease = $true
+                  if ("${{ github.event.inputs.prerelease }}" -ne "") {
+                      $prerelease = "${{ github.event.inputs.prerelease }}" -eq "true"
+                  }
+                  $ghArgs = @(
+                      $tag,
+                      "${{ steps.info.outputs.zip }}",
+                      "--title", "ClassIsland Guardian ${{ steps.info.outputs.version }} (${{ steps.info.outputs.codename }})",
+                      "--notes-file", "release_notes.md"
+                  )
+                  if ($prerelease) { $ghArgs += "--prerelease" } else { $ghArgs += "--prerelease=false" }
+                  gh release create @ghArgs
+                  Write-Host "Release $tag 创建完成"
