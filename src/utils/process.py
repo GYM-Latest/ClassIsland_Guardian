@@ -250,6 +250,8 @@ class Process:
             escape_classisland_app_path = os.path.dirname(
                 escape_classisland_process_path
             )
+            # 立刻修正内存db中的路径防止自己杀自己
+            self.db.path["classisland_path"] = escape_classisland_path
             # 直接启动
             if Exec.start(escape_classisland_launcher_path):
                 time.sleep(5)
@@ -320,6 +322,8 @@ class Process:
                     escape_classisland_process_name
                 )
             elif not is_success:
+                # 还原数据
+                self.db.path["classisland_path"] = classisland_path
                 # 启动失败，清理文件
                 shutil.rmtree(escape_classisland_path, ignore_errors=True)
         Log.warn("所有启动方法均失败。")
