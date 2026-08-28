@@ -3,6 +3,7 @@
 
 import os
 import random
+import re
 import shutil
 import tempfile
 import time
@@ -23,9 +24,8 @@ class Process:
         self.db = db
 
     # 寻找最优的ClassIsland主程序路径并返回
-    def _find_classisland_app_path(self):
-        """寻找最优的 ClassIsland 主程序可执行文件路径。成功返回 路径(String) ，失败返回 False"""
-        classisland_path = self.db.path.get("classisland_path")
+    def _find_classisland_app_path(self, classisland_path):
+        """寻找最优的 ClassIsland 版本路径，传入ClassIsland根路径。成功返回 路径(String) ，失败返回 False"""
         if not os.path.isdir(classisland_path):
             return False
         filelist = os.listdir(classisland_path)
@@ -64,7 +64,7 @@ class Process:
             reverse=True,
         )
         if applist and applist[0]:
-            return os.path.join(classisland_path, applist[0], CLASSISLAND_PROCESS_NAME)
+            return os.path.join(classisland_path, applist[0])
         else:
             return False
 
@@ -137,7 +137,13 @@ class Process:
         classisland_launcher_path = os.path.join(
             classisland_path, classisland_launcher_name
         )
-        classisland_process_path = self._find_classisland_app_path()
+        classisland_process_name = self.db.path.get("classisland_process_name")
+        if not self._find_classisland_app_path(classisland_path):
+            # 找不到可用版本不尝试启动
+            return False
+        classisland_process_path = os.path.join(
+            self._find_classisland_app_path(classisland_path), classisland_process_name
+        )
         # 文件丢失就不尝试启动
         if not classisland_process_path or not os.path.exists(
             classisland_launcher_path
@@ -205,7 +211,7 @@ class Process:
 
     # 清理历史逃逸启动遗留的临时目录
     def _cleanup_old_escape_dirs(self):
-        """清理历史逃逸启动遗留的临时目录。 成功返回True，失败返回False"""
+        """清理历史逃逸启动遗留的临时目录与文件。 成功返回True，失败返回False"""
         classisland_path = self.db.path.get("classisland_path")
         try:
             temp_path = os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()
@@ -216,115 +222,110 @@ class Process:
                         continue  # 当前副本可能在运行/待复用，跳过
                     if os.path.isdir(path):
                         shutil.rmtree(path, ignore_errors=True)
+                        Log.info(f"成功清理了遗留的逃逸目录：{path}")
+
+            current_name = self.db.path.get("classisland_process_name", "")
+            tmp_pattern = re.compile(
+                r"^tmp_[a-z0-9]{6}\.(exe|com|hellowrc)$", re.IGNORECASE
+            )
+            if classisland_path and os.path.isdir(classisland_path):
+                for root, _, files in os.walk(classisland_path):
+                    for fname in files:
+                        if not tmp_pattern.match(fname):
+                            continue
+                        if fname.lower() == current_name.lower():
+                            continue
+                        try:
+                            os.remove(os.path.join(root, fname))
+                            Log.info(
+                                f"成功清理了遗留的逃逸文件：{os.path.join(root, fname)}"
+                            )
+                        except OSError:
+                            pass
+
             return True
         except OSError:
             return False
 
     # 逃逸式启动ClassIsland
     def escape_start_classisland(self):
-        """依次尝试：删除 IFEO 劫持项，复制到随机目录启动，改名启动，修改为 .com 后缀启动。 成功返回 True ，失败返回 False"""
+        """依次尝试：删除 IFEO 劫持项，原目录改名启动，复制到随机目录启动，随机目录改名启动。 成功返回 True ，失败返回 False"""
         Exec.remove_ifeo(self.db.path.get("classisland_process_name"))
 
         classisland_path = self.db.path.get("classisland_path")
-        classisland_launcher_name = self.db.path.get("classisland_launcher_name")
-        classisland_process_path = self._find_classisland_app_path()
+        classisland_process_name = self.db.path.get("classisland_process_name")
+        classisland_process_dir = self._find_classisland_app_path(classisland_path)
+        if not classisland_process_dir:
+            return False
 
         self._cleanup_old_escape_dirs()
+
+        _tmp_file_name = self._random_name()
+        # 原目录改名启动
+        for _suffix in (".exe", ".com", ".HelloWRC"):
+            _renamed_path = os.path.join(
+                classisland_process_dir, f"{_tmp_file_name}{_suffix}"
+            )
+            try:
+                shutil.copy2(
+                    os.path.join(classisland_process_dir, classisland_process_name),
+                    _renamed_path,
+                )
+            except OSError as e:
+                Log.warn(f"原目录改名启动复制失败，错误是：{e}")
+                continue
+            if Exec.start_and_check(_renamed_path):
+                Log.info("拉起成功，ClassIsland进程正常 ~")
+                self.db.path["classisland_process_name"] = f"{_tmp_file_name}{_suffix}"
+                return True
+
+        # 复制到随机目录启动
         escape_classisland_path = tempfile.mkdtemp(
             prefix="cig_", dir=os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()
         )
         is_success = False
-        escape_classisland_process_name = None
         try:
-            # 复制整个安装目录到随机目录
-            shutil.copytree(
-                classisland_path, escape_classisland_path, dirs_exist_ok=True
+            shutil.copytree(classisland_path, escape_classisland_path)
+            escape_classisland_process_path = self._find_classisland_app_path(
+                escape_classisland_path
             )
-            escape_classisland_launcher_path = os.path.join(
-                escape_classisland_path, classisland_launcher_name
-            )
-            escape_classisland_process_path = os.path.join(
-                escape_classisland_path,
-                os.path.relpath(classisland_process_path, classisland_path),
-            )
-            escape_classisland_app_path = os.path.dirname(
-                escape_classisland_process_path
-            )
-            # 立刻修正内存db中的路径防止自己杀自己
+            if not escape_classisland_process_path:
+                return False
+            # 立刻指向逃逸目录
             self.db.path["classisland_path"] = escape_classisland_path
-            # 直接启动
-            if Exec.start(escape_classisland_launcher_path):
-                time.sleep(5)
-                status = self.check_classisland_status()
-                if status == 1:
+
+            # 原名启动
+            if Exec.start_and_check(
+                os.path.join(escape_classisland_process_path, classisland_process_name)
+            ):
+                Log.info("拉起成功，ClassIsland进程正常 ~")
+                is_success = True
+                return True
+
+            # 随机目录改名启动
+            for _suffix in (".exe", ".com", ".HelloWRC"):
+                _renamed_path = os.path.join(
+                    escape_classisland_process_path, f"{_tmp_file_name}{_suffix}"
+                )
+                shutil.copy2(
+                    os.path.join(
+                        escape_classisland_process_path, classisland_process_name
+                    ),
+                    _renamed_path,
+                )
+                if Exec.start_and_check(_renamed_path):
                     Log.info("拉起成功，ClassIsland进程正常 ~")
                     is_success = True
-                    escape_classisland_process_name = CLASSISLAND_PROCESS_NAME
-                    return True
-            if Exec.start(escape_classisland_process_path):
-                time.sleep(5)
-                status = self.check_classisland_status()
-                if status == 1:
-                    Log.info("拉起成功，ClassIsland进程正常 ~")
-                    is_success = True
-                    escape_classisland_process_name = CLASSISLAND_PROCESS_NAME
-                    return True
-            Log.warn("目录逃逸启动失败 ~")
-            # 改名启动
-            random_file_name = self._random_name() + ".exe"
-            shutil.copy2(
-                escape_classisland_process_path,
-                os.path.join(escape_classisland_app_path, random_file_name),
-            )
-            if Exec.start(os.path.join(escape_classisland_app_path, random_file_name)):
-                time.sleep(5)
-                status = Exec.check_process_status(random_file_name)
-                if status == 1:
-                    Log.info("拉起成功，ClassIsland进程正常 ~")
-                    is_success = True
-                    escape_classisland_process_name = random_file_name
-                    return True
-            Log.warn("重命名启动失败 ~")
-            # 修改为.com后缀启动
-            random_com_name = CLASSISLAND_PROCESS_NAME.replace(".exe", ".com")
-            shutil.copy2(
-                escape_classisland_process_path,
-                os.path.join(escape_classisland_app_path, random_com_name),
-            )
-            if Exec.start(os.path.join(escape_classisland_app_path, random_com_name)):
-                time.sleep(5)
-                status = Exec.check_process_status(random_com_name)
-                if status == 1:
-                    Log.info("拉起成功，ClassIsland进程正常 ~")
-                    is_success = True
-                    escape_classisland_process_name = random_com_name
-                    return True
-            # 复制主程序为随机名 .com 启动
-            random_com_name = self._random_name() + ".com"
-            shutil.copy2(
-                escape_classisland_process_path,
-                os.path.join(escape_classisland_app_path, random_com_name),
-            )
-            if Exec.start(os.path.join(escape_classisland_app_path, random_com_name)):
-                time.sleep(5)
-                status = Exec.check_process_status(random_com_name)
-                if status == 1:
-                    Log.info("拉起成功，ClassIsland进程正常 ~")
-                    is_success = True
-                    escape_classisland_process_name = random_com_name
+                    self.db.path["classisland_process_name"] = (
+                        f"{_tmp_file_name}{_suffix}"
+                    )
                     return True
         except Exception as e:
             Log.error(f"启动时出错，错误是：{e}")
         finally:
-            if is_success and escape_classisland_process_name:
-                self.db.path["classisland_path"] = escape_classisland_path
-                self.db.path["classisland_process_name"] = (
-                    escape_classisland_process_name
-                )
-            elif not is_success:
-                # 还原数据
+            if not is_success:
+                # 失败：还原路径并清理逃逸目录
                 self.db.path["classisland_path"] = classisland_path
-                # 启动失败，清理文件
                 shutil.rmtree(escape_classisland_path, ignore_errors=True)
         Log.warn("所有启动方法均失败。")
         return False

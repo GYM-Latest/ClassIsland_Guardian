@@ -5,6 +5,7 @@ import ctypes
 import os
 import subprocess
 import sys
+import time
 import winreg
 from ctypes import wintypes
 
@@ -57,6 +58,15 @@ class Exec:
         except Exception as e:
             Log.warn(f"尝试删除映像劫持失败，错误为：{e}")
             return False
+
+    # 带映像劫持对抗的启动应用程序，并检查是否已启动
+    @staticmethod
+    def start_and_check(path):
+        "带映像劫持对抗的启动指定程序，并检查是否已启动成功。 传入要启动文件的路径(string) 成功返回True，失败返回False"
+        if not Exec.start(path):
+            return False
+        time.sleep(5)
+        return Exec.check_process_by_path(path) >= 1
 
     # 带映像劫持对抗的启动应用程序
     @staticmethod
@@ -144,16 +154,18 @@ class Exec:
 
     # 检查指定进程数量
     @staticmethod
-    def check_process_status(name):
-        "检查指定进程数量。 返回进程数量(int)"
+    def check_process_by_path(path: str):
+        "通过进程的可执行文件路径检查进程数量，返回匹配路径的进程数量。"
         import psutil
 
-        name = name.lower()
-        return sum(
-            1
-            for proc in psutil.process_iter(["name"])
-            if proc.info.get("name") and proc.info["name"].lower() == name
-        )
+        count = 0
+        for proc in psutil.process_iter(["exe"]):
+            try:
+                if proc.info["exe"] and proc.info["exe"].lower() == path.lower():
+                    count += 1
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+        return count
 
     # 设置计划任务
     @staticmethod
