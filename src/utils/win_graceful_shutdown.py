@@ -19,7 +19,7 @@ from apscheduler.schedulers.base import STATE_STOPPED
 from utils.exec import Exec
 from utils.log import Log
 
-Log = Log('shutdown')
+Log = Log("shutdown")
 
 # you can override these variables in the main script if you want the windows shutdown screen to say something else
 APPNAME = os.path.basename(__file__)
@@ -60,8 +60,7 @@ def window_thread():
             return 0
 
         if message == win32con.WM_DESTROY:
-            Log.info("收到 WM_DESTROY 通知，尝试重启主进程。")
-            Exec.start(os.path.join(Exec.get_exe_path(),Exec.get_exe_name()))
+            Log.info("收到 WM_DESTROY 通知。")
             return 0
 
         if (
