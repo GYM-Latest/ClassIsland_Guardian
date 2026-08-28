@@ -4,8 +4,12 @@
 
 ## 准备工作
 
-> [!CAUTION]
-> 当前 `ClassIsland Guardian` 仍处在 **早期测试阶段** 。强烈建议在 **虚拟机** 里进行测试与安装。如果遇到 `Bug` ，欢迎创建 `Issue` 反馈。
+> [!WARNING] 
+> **项目正处于测试阶段，稳定性经过测试，但部分边缘情况下可能仍会崩溃。**
+>
+> 请谨慎部署，如有必要，建议在**可控的实体机/虚拟机**上中部署。
+>
+> **可以适当在生产环境部署。** 如果在使用过程中遇到Bug，欢迎提交Issue。
 
 > [!TIP]
 > `ClassIsland Guardian` 是 `ClassIsland` 的配套应用程序，如您未安装 `ClassIsland` ,可以访问 [https://www.classisland.tech/](https://www.classisland.tech/) 下载 `ClassIsland`

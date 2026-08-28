@@ -11,10 +11,12 @@
 
 > [!TIP]
 > 详细的安装引导请参见 [首次安装引导](docs/guides/first_install.md) 
+> 
 > 有问题可以在这里查找解决方案 [文档首页](docs/README.md)
 
 ### 新增
 
+- 新增应用图标，应用于程序与 README 展示（感谢 [智教论坛 @YIGEZIJUE](https://forum.smart-teach.cn/u/YIGEZIJUE) 绘制）。
 - 新增逃逸式启动成功后记录当前进程名与逃逸目录，便于排查与跟踪。
 
 ### 改进
