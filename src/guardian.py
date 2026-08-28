@@ -31,6 +31,7 @@ _instance_mutex = None
 # 热重启次数记录
 hot_reboot_time = 0
 
+
 # 检查并创建互斥锁
 def prevent_multiple_instances():
     """防止多实例启动，若已有实例则退出程序"""
@@ -54,11 +55,11 @@ def hot_reboot():
             if scheduler.state != STATE_STOPPED:
                 scheduler.shutdown(True)
             if hot_reboot_time >= 5:
-                Log.info(f'热重启次数达到上限，不再重启并关闭进程。')
+                Log.info("热重启次数达到上限，不再重启并关闭进程。")
                 Exec.unmake_process_critical()
                 os._exit(0)
             hot_reboot_time += 1
-            Log.info(f'这是第 {hot_reboot_time} 次热重启。')
+            Log.info(f"这是第 {hot_reboot_time} 次热重启。")
             main()
     except:
         Exec.unmake_process_critical()
@@ -70,9 +71,13 @@ def error_handler(event):
     try:
         Log.error(f"任务 {event.job_id} 发生未被捕获的异常，错误是： {event.exception}")
         scheduler.remove_job(event.job_id)
-        Log.info(f"成功禁用发生异常的任务：{event.job_id}，当前任务列表：{scheduler.get_jobs()}")
+        Log.info(
+            f"成功禁用发生异常的任务：{event.job_id}，当前任务列表：{scheduler.get_jobs()}"
+        )
     except Exception as e:
-        Log.error(f"禁用异常任务失败，错误是：{e}，当前任务列表：{scheduler.get_jobs()}")
+        Log.error(
+            f"禁用异常任务失败，错误是：{e}，当前任务列表：{scheduler.get_jobs()}"
+        )
 
 
 # 进程丢失后处理函数
@@ -100,7 +105,7 @@ def process_missing():
     Log.warn("拉起失败，ClassIsland进程仍未在运行。")
 
     # 拉起失败后先恢复快照
-    Log.warn(f'尝试恢复最新快照。')
+    Log.warn("尝试恢复最新快照。")
     # 先备份当前状态
     Snapshot.create_snapshot("自动回滚前生成的快照")
     # 忽略自动回滚备份，只恢复真正的历史快照
@@ -112,14 +117,16 @@ def process_missing():
             if Process.start_classisland():
                 return
         else:
-            Log.error('恢复快照时出错，错误是：没有可用快照')
+            Log.error("恢复快照时出错，错误是：没有可用快照")
 
     # 尝试逃逸式启动
-    Log.error('尝试逃逸式启动。')
+    Log.error("尝试逃逸式启动。")
     if Process.escape_start_classisland():
-        Log.info("逃逸式启动成功！")
+        Log.info(
+            f"逃逸式启动成功！当前 ClassIsland 目录：{db.path.get('classisland_path')} ，当前可执行文件名称：{db.path.get('classisland_process_name')}"
+        )
         return
-    Log.error("修复失败。")
+    Log.error("拉起失败。")
 
 
 # 重启 ClassIsland
@@ -313,7 +320,7 @@ def main():
     except Exception as e:
         try:
             Log.error(f"发生无法处理的错误：{e}")
-            Log.error(f"触发热重启 ~")
+            Log.error("触发热重启 ~")
         except:
             logfile = os.path.join(
                 os.path.dirname(sys.executable)
