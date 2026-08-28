@@ -1,5 +1,10 @@
-# ClassIsland Guardian
+<div align="center">
+
+# <img src="icon/icon.svg" height="32" width="32" align="middle" style="vertical-align: middle;"/> ClassIsland Guardian
+
 > ⌜念念不忘，必有回响⌟
+
+</div>
 
 `ClassIsland Guardian` 是一款适用于 `Windows` 平台的，功能强大的 `ClassIsland` 守护工具。
 
@@ -101,7 +106,7 @@ ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 3. 感谢所有贡献者——每一行代码、每一个 Issue、每一次讨论，都在让 CIG 变得更好。
 4. 感谢 [DeepSeek](https://deepseek.com)——在无数个卡壳的深夜提供思路与陪伴。
 5. 感谢 [SignPath Foundation](https://signpath.org)——为开源项目提供免费的代码签名服务，让驱动能够被信任。
-6. 感谢 [热铁盒网页托管](https://host-intro.retiehe.com/)——提供高速且价格友好的网站托管服务。
+6. 感谢 [智教论坛 @YIGEZIJUE](https://forum.smart-teach.cn/u/YIGEZIJUE)——为该项目无偿绘制了图标。
 7. 感谢 [洛谷云图床](https://www.luogu.com.cn/image)——稳定的图床支持，让文档和 README 得以清晰呈现。
 8. 感谢你——让这个项目有了存在的意义。
 9. 磅十五便士。
