@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="icon/icon.svg" height="32" width="32" align="middle" style="vertical-align: middle;"/> ClassIsland Guardian
+# <image src="icon/icon.svg" height="28" width="28"/> ClassIsland Guardian
 
 > ⌜念念不忘，必有回响⌟
 

@@ -113,7 +113,6 @@ def process_missing():
     if snapshots:
         snapshots = [s for s in snapshots if "自动回滚前生成的快照" not in s]
         if snapshots and Snapshot.restore_snapshot(snapshots[0]):
-            Log.info(f"成功恢复到：{snapshots[0]}")
             if Process.start_classisland():
                 return
         else:
