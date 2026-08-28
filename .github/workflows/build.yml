@@ -34,11 +34,11 @@ jobs:
 
             - name: Build Python Executable
               run: |
-                pyinstaller --distpath temp -w -F -n guardian --copy-metadata apscheduler --hidden-import apscheduler.triggers.interval --hidden-import apscheduler.triggers.date --hidden-import apscheduler.executors.pool --hidden-import apscheduler.jobstores.memory --hidden-import tzlocal src\guardian.py
-                pyinstaller --distpath temp -F --copy-metadata readchar -n config src\config.py
-                pyinstaller --distpath temp -F --copy-metadata readchar -n uninstall src\uninstall.py
-                pyinstaller --distpath temp -F -n setup src\setup.py
-                pyinstaller --distpath temp -F -n recovery src\recovery.py
+                pyinstaller --distpath temp -w -F -n guardian --copy-metadata apscheduler --hidden-import apscheduler.triggers.interval --hidden-import apscheduler.triggers.date --hidden-import apscheduler.executors.pool --hidden-import apscheduler.jobstores.memory --hidden-import tzlocal --icon icon\icon.ico src\guardian.py
+                pyinstaller --distpath temp -F --copy-metadata readchar -n config --icon icon\icon.ico src\config.py
+                pyinstaller --distpath temp -F --copy-metadata readchar -n uninstall --icon icon\icon.ico src\uninstall.py
+                pyinstaller --distpath temp -F -n setup --icon icon\icon.ico src\setup.py
+                pyinstaller --distpath temp -F -n recovery --icon icon\icon.ico src\recovery.py
 
             - name: Add MSBuild to PATH
               uses: microsoft/setup-msbuild@v2
@@ -168,7 +168,7 @@ jobs:
                   $ghArgs = @(
                       $tag,
                       "${{ steps.info.outputs.zip }}",
-                      "--title", "ClassIsland Guardian ${{ steps.info.outputs.version }} (${{ steps.info.outputs.codename }})",
+                      "--title", "${{ steps.info.outputs.version }}",
                       "--notes-file", "release_notes.md"
                   )
                   if ($prerelease) { $ghArgs += "--prerelease" } else { $ghArgs += "--prerelease=false" }
