@@ -285,7 +285,9 @@ class Process:
         )
         is_success = False
         try:
-            shutil.copytree(classisland_path, escape_classisland_path)
+            shutil.copytree(
+                classisland_path, escape_classisland_path, dirs_exist_ok=True
+            )
             escape_classisland_process_path = self._find_classisland_app_path(
                 escape_classisland_path
             )
