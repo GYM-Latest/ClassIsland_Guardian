@@ -132,7 +132,7 @@ jobs:
                   }
                   # 从 CHANGELOG.md 提取本版本分节作为 release notes，缺失则用全文
                   $changelog = Get-Content CHANGELOG.md -Raw
-                  $pattern = '(?ms)^## ' + [regex]::Escape($tag) + '(?: - .*)?$.*?(?=^## |\z)'
+                  $pattern = '(?ms)^## ' + [regex]::Escape($tag) + '[^\r\n]*\r?\n(.*?)(?=^## |\z)'
                   $section = [regex]::Match($changelog, $pattern)
                   $notes = if ($section.Success) { $section.Value } else { $changelog }
                   $notes | Set-Content -Path release_notes.md -Encoding utf8
