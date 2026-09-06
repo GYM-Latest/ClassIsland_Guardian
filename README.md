@@ -82,6 +82,12 @@ ClassIsland Github](https://github.com/ClassIsland/ClassIsland)。
 - `drivers/`：Ring0 内核驱动源码。
 - `launcher/`: Ring3 用户态启动器源码。
 
+## 分支状态
+
+| 分支 | 对应版本 | 状态 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `main` | v0.4.2 (Mahiro) | ✅ 稳定版 | 当前稳定版本，建议生产环境使用，长期维护 |
+| `dev/v0.5.0` | v0.5.0 (Mihari) | 🚧 开发中 | 架构大重构与功能增强，仍在持续开发，**不建议生产环境部署** |
 
 ## 社区衍生项目
 
