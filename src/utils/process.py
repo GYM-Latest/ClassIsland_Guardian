@@ -320,19 +320,23 @@ class Process:
 
     # 检查ClassIsland日志写入最后日期来检查ClassIsland是否卡死
     def check_classisland_frozen(self):
-        classisland_log_path = os.path.join(self.db.path.get('classisland_path'), 'data', 'Logs')
-        files = [os.path.join(classisland_log_path, f) for f in os.listdir(classisland_log_path) if f.startswith('log-') and f.endswith('.log')]
+        classisland_log_path = os.path.join(
+            self.db.path.get("classisland_path"), "data", "Logs"
+        )
+        files = [
+            os.path.join(classisland_log_path, f)
+            for f in os.listdir(classisland_log_path)
+            if f.startswith("log-") and f.endswith(".log")
+        ]
         if not files:
             return True
-        latest_file =  max(files, key=os.path.getmtime)
+        latest_file = max(files, key=os.path.getmtime)
 
         last_mtime = os.path.getmtime(latest_file)
         now = time.time()
         elapsed = now - last_mtime
 
-        Log.info(f'检查了 ClassIsland 日志，最后写入日期是：{time.ctime(last_mtime)}，距现在：{int(elapsed)}s')
-        if(elapsed >= 70):
-            return False
-        else:
-            return True
-
+        Log.info(
+            f"检查了 ClassIsland 日志，最后写入日期是：{time.ctime(last_mtime)}，距现在：{int(elapsed)}s"
+        )
+        return elapsed < 70

@@ -142,15 +142,16 @@ def poll_classisland():
     status = Process.check_classisland_status()
     if status == 1:
         Log.info("检查ClassIsland，进程正常 ~")
-        if not Process.check_classisland_frozen():
-          if not scheduler.get_job("fixing_classisland"):
+        if not Process.check_classisland_frozen() and not scheduler.get_job(
+            "fixing_classisland"
+        ):
             Log.info("日志文件超过 70s 无更新，认定卡死，开始重启。")
             scheduler.add_job(
                 reboot_classisland,
                 "date",
                 id="fixing_classisland",
                 max_instances=1,
-            )  
+            )
     elif status == 0:
         if not scheduler.get_job("fixing_classisland"):
             scheduler.add_job(
