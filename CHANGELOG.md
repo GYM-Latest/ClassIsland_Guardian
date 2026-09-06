@@ -1,6 +1,6 @@
 # 更新日志
 
-## v0.4.2 - 2026-08-28
+## v0.4.2 - 2026-09-06
 
 > [!WARNING] 
 > **项目正处于测试阶段，稳定性经过测试，但部分边缘情况下可能仍会崩溃。**
@@ -16,7 +16,7 @@
 
 ### 新增
 
-- 新增 ClassIsland 卡死检测，检测到 ClassIsland 卡死自动重启进程 [Issue #5](https://github.com/GYM-Latest/ClassIsland_Guardian/issues/5)
+- 新增 ClassIsland 卡死检测，检测到 ClassIsland 卡死自动重启进程 （[Issue #5](https://github.com/GYM-Latest/ClassIsland_Guardian/issues/5)）
 
 ### 移除
 
