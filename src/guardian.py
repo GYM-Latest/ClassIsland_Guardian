@@ -135,28 +135,28 @@ def reboot_classisland():
     Process.reboot_classisland()
 
 
-# 120s轮询线程
+# 30s轮询线程
 def poll_classisland():
     if is_config_running:
         return
     status = Process.check_classisland_status()
     if status == 1:
         Log.info("检查ClassIsland，进程正常 ~")
-    elif status == 0:
-        if not scheduler.get_job("process_missing"):
-            scheduler.add_job(
-                process_missing,
-                "date",
-                id="process_missing",
-                max_instances=1,
-            )
-    elif status >= 2:
-        Log.info(f"(Warning) 检测到 {status} 个ClassIsland进程，确认卡死，正在重启")
-        if not scheduler.get_job("reboot_classisland"):
+        if not Process.check_classisland_frozen():
+          if not scheduler.get_job("fixing_classisland"):
+            Log.info("日志文件超过 70s 无更新，认定卡死，开始重启。")
             scheduler.add_job(
                 reboot_classisland,
                 "date",
-                id="reboot_classisland",
+                id="fixing_classisland",
+                max_instances=1,
+            )  
+    elif status == 0:
+        if not scheduler.get_job("fixing_classisland"):
+            scheduler.add_job(
+                process_missing,
+                "date",
+                id="fixing_classisland",
                 max_instances=1,
             )
 
@@ -167,21 +167,21 @@ def monitor_classisland():
     if result:
         try:
             psutil.Process(result).wait(4)
-            if not scheduler.get_job("process_missing"):
+            if not scheduler.get_job("fixing_classisland"):
                 scheduler.add_job(
                     process_missing,
                     "date",
-                    id="process_missing",
+                    id="fixing_classisland",
                     max_instances=1,
                 )
         except psutil.TimeoutExpired:
             return
     else:
-        if not scheduler.get_job("process_missing"):
+        if not scheduler.get_job("fixing_classisland"):
             scheduler.add_job(
                 process_missing,
                 "date",
-                id="process_missing",
+                id="fixing_classisland",
                 max_instances=1,
             )
 
@@ -281,7 +281,7 @@ def main():
         scheduler.add_job(
             poll_classisland,
             "interval",
-            seconds=120,
+            seconds=30,
             id="poll_classisland",
             max_instances=1,
         )

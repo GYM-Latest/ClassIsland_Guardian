@@ -153,31 +153,17 @@ class Process:
         if Exec.start(classisland_launcher_path):
             time.sleep(5)
             status = self.check_classisland_status()
-            if status == 1:
+            if status >= 1:
                 Log.info("拉起成功，ClassIsland进程正常 ~")
                 return True
-            if status >= 2:
-                if self.reboot_classisland():
-                    time.sleep(5)
-                    status = self.check_classisland_status()
-                    Log.info("拉起并重启成功，ClassIsland进程正常 ~")
-                    if status == 1:
-                        return True
         Log.warn("启动启动器失败，尝试直接启动主程序 ~")
         # 绕过启动器直接启动主程序
         if Exec.start(classisland_process_path):
             time.sleep(5)
             status = self.check_classisland_status()
-            if status == 1:
+            if status >= 1:
                 Log.info("拉起成功，ClassIsland进程正常 ~")
                 return True
-            if status >= 2:
-                if self.reboot_classisland():
-                    time.sleep(5)
-                    status = self.check_classisland_status()
-                    Log.info("拉起并重启成功，ClassIsland进程正常 ~")
-                    if status == 1:
-                        return True
         Log.warn("直接启动主程序失败。")
         return False
 
@@ -331,3 +317,22 @@ class Process:
                 shutil.rmtree(escape_classisland_path, ignore_errors=True)
         Log.warn("所有启动方法均失败。")
         return False
+
+    # 检查ClassIsland日志写入最后日期来检查ClassIsland是否卡死
+    def check_classisland_frozen(self):
+        classisland_log_path = os.path.join(self.db.path.get('classisland_path'), 'data', 'Logs')
+        files = [os.path.join(classisland_log_path, f) for f in os.listdir(classisland_log_path) if f.startswith('log-') and f.endswith('.log')]
+        if not files:
+            return True
+        latest_file =  max(files, key=os.path.getmtime)
+
+        last_mtime = os.path.getmtime(latest_file)
+        now = time.time()
+        elapsed = now - last_mtime
+
+        Log.info(f'检查了 ClassIsland 日志，最后写入日期是：{time.ctime(last_mtime)}，距现在：{int(elapsed)}s')
+        if(elapsed >= 70):
+            return False
+        else:
+            return True
+
