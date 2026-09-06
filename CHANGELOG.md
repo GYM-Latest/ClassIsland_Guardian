@@ -1,5 +1,27 @@
 # 更新日志
 
+## v0.4.2 - 2026-08-28
+
+> [!WARNING] 
+> **项目正处于测试阶段，稳定性经过测试，但部分边缘情况下可能仍会崩溃。**
+>
+> 请谨慎部署，如有必要，建议在**可控的实体机/虚拟机**上中部署。
+>
+> **可以适当在生产环境部署。** 如果在使用过程中遇到Bug，欢迎提交Issue。
+
+> [!TIP]
+> 详细的安装引导请参见 [首次安装引导](docs/guides/first_install.md) 
+> 
+> 有问题可以在这里查找解决方案 [文档首页](docs/README.md)
+
+### 新增
+
+- 新增 ClassIsland 卡死检测，检测到 ClassIsland 卡死自动重启进程 [Issue #5](https://github.com/GYM-Latest/ClassIsland_Guardian/issues/5)
+
+### 移除
+
+- 移除 ClassIsland 多进程检测。
+
 ## v0.4.1 - 2026-08-28
 
 > [!WARNING] 
