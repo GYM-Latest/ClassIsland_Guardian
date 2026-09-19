@@ -15,11 +15,16 @@ import winreg
 import psutil
 from prompt_toolkit import prompt
 
-from utils.bcd import Bcd
+from utils.bcd import BcdClass
 from utils.database import Database
-from utils.exec import Exec
-from utils.snapshot import Snapshot
+from utils.exec import ExecClass
+from utils.log import LogClass
+from utils.snapshot import SnapshotClass
 from utils.version import CODENAME, VERSION
+
+log = LogClass("setup")
+exec = ExecClass(log)
+bcd = BcdClass(log)
 
 
 class Config:
@@ -31,7 +36,7 @@ class Config:
     @staticmethod
     def generate_install_configuration_file(name):
         """生成安装配置文件（JSON）"""
-        path = os.path.join(Exec.get_exe_path(), name)
+        path = os.path.join(exec.get_exe_path(), name)
         data = {
             "version": VERSION,
             "classisland_path": Config.classisland_path,
@@ -44,7 +49,7 @@ class Config:
     @staticmethod
     def read_install_configuration_file(name):
         """读取安装配置文件（JSON）"""
-        path = os.path.join(Exec.get_exe_path(), name)
+        path = os.path.join(exec.get_exe_path(), name)
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         Config.classisland_path = data.get("classisland_path")
@@ -69,13 +74,13 @@ def prepare_install_drivers():
         print(i, end=" ", flush=True)
         time.sleep(1)
 
-    if not Bcd.set_testmode():
+    if not bcd.set_testmode():
         print("启动测试模式失败，无法开启驱动级保护。")
         input("按回车关闭安装向导......")
         return
-    if not Exec.set_schtasks(
+    if not exec.set_schtasks(
         "ClassIslandGuardianInstall",
-        os.path.join(Exec.get_exe_path(), Exec.get_exe_name()),
+        os.path.join(exec.get_exe_path(), exec.get_exe_name()),
     ):
         print("设置计划任务失败，无法开启驱动级保护。")
         input("按回车关闭安装向导......")
@@ -93,7 +98,7 @@ def install():
         print(f"正在安装：{dst}")
         shutil.copy2(src, dst)
 
-    Exec.clear_terminal()
+    exec.clear_terminal()
 
     print("将在倒计时结束后开始安装 ~")
     for i in range(5, 0, -1):
@@ -103,7 +108,7 @@ def install():
     print("\n")
 
     # 关闭ClassIsland
-    Exec.kill_process("ClassIsland.Desktop.exe")
+    exec.kill_process("ClassIsland.Desktop.exe")
 
     # 创建目录
     recovery_path = os.path.join(
@@ -144,27 +149,27 @@ def install():
 
     # 复制 guardian 目录
     shutil.copytree(
-        os.path.join(Exec.get_exe_path(), "appdata"),
+        os.path.join(exec.get_exe_path(), "appdata"),
         guardian_path,
         copy_function=_copy_and_log,
         dirs_exist_ok=True,
     )
     # 复制 GuardianRecovery\stable
     shutil.copytree(
-        os.path.join(Exec.get_exe_path(), "appdata"),
+        os.path.join(exec.get_exe_path(), "appdata"),
         os.path.join(recovery_path, "stable", "appdata"),
         copy_function=_copy_and_log,
         dirs_exist_ok=True,
     )
     shutil.copytree(
-        os.path.join(Exec.get_exe_path(), "drivers"),
+        os.path.join(exec.get_exe_path(), "drivers"),
         os.path.join(recovery_path, "stable", "drivers"),
         copy_function=_copy_and_log,
         dirs_exist_ok=True,
     )
     # 复制并注册内核驱动（仅当用户选择安装驱动级守护时）
     if Config.driver_protection:
-        src_drivers_path = os.path.join(Exec.get_exe_path(), "drivers")
+        src_drivers_path = os.path.join(exec.get_exe_path(), "drivers")
         drivers_path = os.path.join(
             os.environ.get("SystemRoot", r"C:\Windows"), "System32", "drivers"
         )
@@ -280,16 +285,16 @@ def install():
 
     # 创建首个快照
     db.read_database()
-    snapshot = Snapshot(db)
+    snapshot = SnapshotClass(db)
     snapshot.snapshot_path = os.path.join(guardian_path, "data", "snapshot")
     print(f"创建了首个快照：{snapshot.create_snapshot('安装时生成的初始快照')} ~")
 
     # 创建预启动修复环境
     shutil.copy2(
-        os.path.join(Exec.get_exe_path(), "recovery", "recovery.wim"),
+        os.path.join(exec.get_exe_path(), "recovery", "recovery.wim"),
         os.path.join(recovery_path, "recovery.wim"),
     )
-    if not Bcd.create_recovery_bcd():
+    if not bcd.create_recovery_bcd():
         print("创建预启动修复环境失败（BCD/boot.sdi） ~")
         sys.exit(1)
 
@@ -302,7 +307,7 @@ def configure():
 
     # 起始页面
     while True:
-        Exec.clear_terminal()
+        exec.clear_terminal()
         print("ClassIsland Guardian Installer")
         print(f"版本 {VERSION} | {CODENAME}")
         print("欢迎，该配置向导会帮你完成 ClassIsland Guardian 的安装与配置 ~\n")
@@ -321,7 +326,7 @@ def configure():
 
     # 选择classisland路径
     while True:
-        Exec.clear_terminal()
+        exec.clear_terminal()
         print("请输入 ClassIsland 的路径 ~")
         print("输好后按 ENTER 就好 ~")
         path = prompt(">", default=(find_classisland() or ""))
@@ -334,7 +339,7 @@ def configure():
 
     # 选择密码保护
     while True:
-        Exec.clear_terminal()
+        exec.clear_terminal()
         print("请设置管理密码 ~（留空则不启用）\n")
         print("为安全起见，输入不会显示出来哦")
         password = getpass.getpass(">")
@@ -352,7 +357,7 @@ def configure():
 
     # 询问是否安装驱动级守护
     while True:
-        Exec.clear_terminal()
+        exec.clear_terminal()
         print("是否安装驱动级守护？\n")
         print("驱动级守护可以阻止攻击者结束 ClassIsland 与守护进程，")
         print("将会自动开启 Windows 测试模式并重启以加载未签名驱动。")
@@ -368,7 +373,7 @@ def configure():
     # 直接安装应用层守护
     if mode == "install" and Config.driver_protection == False:
         while True:
-            Exec.clear_terminal()
+            exec.clear_terminal()
             print("所有配置都填好啦 ~\n")
             print("输入 install 再按 ENTER 就可以开始安装了")
             print("安装过程中 ClassIsland 会稍微歇一下下 ~")
@@ -379,7 +384,7 @@ def configure():
     # 生成配置
     elif mode == "config":
         while True:
-            Exec.clear_terminal()
+            exec.clear_terminal()
             Config.generate_install_configuration_file("install_config.json")
             print("已经生成无人值守安装配置文件（JSON）~\n")
             print("配置文件包含 ClassIsland 路径、管理密码与驱动级守护选项，")
@@ -389,7 +394,7 @@ def configure():
     # 安装驱动级保护
     elif mode == "install" and Config.driver_protection:
         while True:
-            Exec.clear_terminal()
+            exec.clear_terminal()
             print("所有配置都填好啦 ~\n")
             print("输入 install 再按 ENTER 就可以开始安装了")
             print("安装过程中 ClassIsland 会稍微歇一下下 ~")
@@ -415,12 +420,12 @@ def main():
     global Config
     Config = Config()
 
-    if os.path.exists(os.path.join(Exec.get_exe_path(), "install_temp.json")):
+    if os.path.exists(os.path.join(exec.get_exe_path(), "install_temp.json")):
         Config.read_install_configuration_file("install_temp.json")
         install()
-        os.remove(os.path.join(Exec.get_exe_path(), "install_temp.json"))
-        Exec.unset_schtasks("ClassIslandGuardianInstall")
-    elif os.path.exists(os.path.join(Exec.get_exe_path(), "install_config.json")):
+        os.remove(os.path.join(exec.get_exe_path(), "install_temp.json"))
+        exec.unset_schtasks("ClassIslandGuardianInstall")
+    elif os.path.exists(os.path.join(exec.get_exe_path(), "install_config.json")):
         Config.read_install_configuration_file("install_config.json")
         if Config.driver_protection == True:
             prepare_install_drivers()

@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 
 
-class Log:
+class LogClass:
     def __init__(self, source=None):
         self.logfile = os.path.join(
             os.path.dirname(sys.executable)

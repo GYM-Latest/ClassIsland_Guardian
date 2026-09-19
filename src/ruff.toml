@@ -4,10 +4,12 @@
 # DTZ005: datetime.now() 无时区 —— 本地工具，本地时间即所需
 # E722:   裸 except —— 守护/清理场景故意捕获一切（含 KeyboardInterrupt/SystemExit），
 #         兜底逻辑不能漏任何异常
+# G010: log模块是自己实现的，不是logging模块
 [lint]
 ignore = [
     "BLE001",
     "S110",
     "DTZ005",
     "E722",
+    "G010"
 ]

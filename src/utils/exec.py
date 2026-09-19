@@ -9,15 +9,13 @@ import time
 import winreg
 from ctypes import wintypes
 
-from utils.log import Log
 
-Log = Log("exec")
+class ExecClass:
+    def __init__(self, log):
+        self.log = log
 
-
-class Exec:
     # 获取当前运行目录
-    @staticmethod
-    def get_exe_path():
+    def get_exe_path(self):
         "返回当前程序运行的目录。"
         if getattr(sys, "frozen", False):
             return os.path.dirname(sys.executable)
@@ -25,14 +23,12 @@ class Exec:
             return os.path.dirname(os.path.abspath(__file__))
 
     # 获取当前程序进程名
-    @staticmethod
-    def get_exe_name():
+    def get_exe_name(self):
         "返回当前程序进程名。"
         return os.path.basename(sys.argv[0])
 
     # 映像劫持清除
-    @staticmethod
-    def remove_ifeo(name):
+    def remove_ifeo(self, name):
         "检测并尝试清除指定项的映像劫持。 传入要启动文件的名称(string) 成功返回True，失败返回False"
         try:
             key = winreg.OpenKey(
@@ -47,7 +43,7 @@ class Exec:
                 winreg.HKEY_LOCAL_MACHINE,
                 f"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\{name}",
             )
-            Log.warn(
+            self.log.warn(
                 f"成功删除了映像劫持： SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\{name}"
             )
             return True
@@ -56,24 +52,22 @@ class Exec:
         except OSError:
             return True
         except Exception as e:
-            Log.warn(f"尝试删除映像劫持失败，错误为：{e}")
+            self.log.warn(f"尝试删除映像劫持失败，错误为：{e}")
             return False
 
     # 带映像劫持对抗的启动应用程序，并检查是否已启动
-    @staticmethod
-    def start_and_check(path):
+    def start_and_check(self, path):
         "带映像劫持对抗的启动指定程序，并检查是否已启动成功。 传入要启动文件的路径(string) 成功返回True，失败返回False"
-        if not Exec.start(path):
+        if not self.start(path):
             return False
         time.sleep(5)
-        return Exec.check_process_by_path(path) >= 1
+        return self.check_process_by_path(path) >= 1
 
     # 带映像劫持对抗的启动应用程序
-    @staticmethod
-    def start(path):
+    def start(self, path):
         "带映像劫持对抗的启动指定程序。 传入要启动文件的目录(string) 成功返回True，失败返回False"
         name = os.path.basename(path)
-        if not Exec.remove_ifeo(name):
+        if not self.remove_ifeo(name):
             return False
 
         if os.path.exists(os.path.dirname(path)):
@@ -84,15 +78,14 @@ class Exec:
                 )
                 return True
             except Exception as e:
-                Log.error(f"启动进程失败，错误是：{e}")
+                self.log.error(f"启动进程失败，错误是：{e}")
                 return False
         else:
-            Log.error("启动进程失败，目录不存在")
+            self.log.error("启动进程失败，目录不存在")
             return False
 
     # 结束指定进程
-    @staticmethod
-    def kill_process(name):
+    def kill_process(self, name):
         "结束指定进程。 传入要结束的进程名(string)。 成功返回True"
         import psutil
 
@@ -106,13 +99,11 @@ class Exec:
         return True
 
     # 清空控制台
-    @staticmethod
-    def clear_terminal():
+    def clear_terminal(self):
         subprocess.run("cls", shell=True, check=False)
 
     # 标记为系统关键进程
-    @staticmethod
-    def make_process_critical():
+    def make_process_critical(self):
         """标记当前进程为系统关键进程。 成功返回 True (bool)， 失败返回 False (Bool)"""
         ntdll = ctypes.WinDLL("ntdll.dll")
         RtlSetProcessIsCritical = ntdll.RtlSetProcessIsCritical
@@ -125,15 +116,14 @@ class Exec:
 
         result = RtlSetProcessIsCritical(True, None, False)
         if result == 0:
-            Log.info("进程已成功标记为关键进程 ~")
+            self.log.info("进程已成功标记为关键进程 ~")
             return True
         else:
-            Log.error(f"操作失败，错误码: {result}")
+            self.log.error(f"操作失败，错误码: {result}")
             return False
 
     # 取消标记为系统关键进程
-    @staticmethod
-    def unmake_process_critical():
+    def unmake_process_critical(self):
         """取消标记当前进程为系统关键进程。 成功返回 True (bool)， 失败返回 False (Bool)"""
         ntdll = ctypes.WinDLL("ntdll.dll")
         RtlSetProcessIsCritical = ntdll.RtlSetProcessIsCritical
@@ -146,15 +136,14 @@ class Exec:
 
         result = RtlSetProcessIsCritical(False, None, False)
         if result == 0:
-            Log.info("已成功取消标记为关键进程 ~")
+            self.log.info("已成功取消标记为关键进程 ~")
             return True
         else:
-            Log.error(f"操作失败，错误码: {result}")
+            self.log.error(f"操作失败，错误码: {result}")
             return False
 
     # 检查指定进程数量
-    @staticmethod
-    def check_process_by_path(path: str):
+    def check_process_by_path(self, path: str):
         "通过进程的可执行文件路径检查进程数量，返回匹配路径的进程数量。"
         import psutil
 
@@ -168,8 +157,7 @@ class Exec:
         return count
 
     # 设置计划任务
-    @staticmethod
-    def set_schtasks(name, path):
+    def set_schtasks(self, name, path):
         "为指定的项创建计划任务。 传入任务名(string)与可执行文件路径(string)，成功返回 True ，失败返回 False"
         try:
             subprocess.run(
@@ -195,8 +183,7 @@ class Exec:
             return False
 
     # 移除计划任务
-    @staticmethod
-    def unset_schtasks(name):
+    def unset_schtasks(self, name):
         "为指定的项移除计划任务。 传入任务名称(String)，成功返回 True ，失败返回 False"
         try:
             subprocess.run(

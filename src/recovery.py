@@ -8,12 +8,14 @@ import subprocess
 import sys
 import time
 
-from utils.bcd import Bcd
-from utils.exec import Exec
-from utils.log import Log
+from utils.bcd import BcdClass
+from utils.exec import ExecClass
+from utils.log import LogClass
 from utils.version import CODENAME, VERSION
 
-Log = Log("recovery")
+log = LogClass("recovery")
+exec = ExecClass(log)
+bcd = BcdClass(log)
 
 
 def _find_guardianrecovery_path():
@@ -27,7 +29,7 @@ def _find_guardianrecovery_path():
 
 
 def _copy_and_log(src, dst, verb="复制"):
-    Log.info(f"正在{verb}：{dst}")
+    log.info(f"正在{verb}：{dst}")
     shutil.copy2(src, dst)
 
 
@@ -42,9 +44,9 @@ def _backup_guardian_log():
             os.path.join(guardian_path, "data", "guardian.log"),
             os.path.join(guardianrecovery_path, "guardian.log"),
         )
-        Log.info("备份日志文件成功 ~")
+        log.info("备份日志文件成功 ~")
     except Exception as e:
-        Log.warn(f"备份日志文件失败，错误为：{e}")
+        log.warn(f"备份日志文件失败，错误为：{e}")
 
 
 def _restore_guardian_log():
@@ -59,9 +61,9 @@ def _restore_guardian_log():
             os.path.join(guardian_path, "data", "guardian.log"),
         )
         os.remove(os.path.join(guardianrecovery_path, "guardian.log"))
-        Log.info("恢复日志文件成功 ~")
+        log.info("恢复日志文件成功 ~")
     except Exception as e:
-        Log.warn(f"恢复日志文件失败，错误为：{e}")
+        log.warn(f"恢复日志文件失败，错误为：{e}")
 
 
 def _copy_drivers(src, dst):
@@ -91,7 +93,7 @@ def fix_guardian():
         # 修复程序文件与配置文件
         try:
             shutil.rmtree(guardian_path)
-            Log.info("清除旧程序文件成功 ~")
+            log.info("清除旧程序文件成功 ~")
         except:
             pass
         shutil.copytree(
@@ -104,13 +106,13 @@ def fix_guardian():
             os.path.join(drivers_path),
         )
         _restore_guardian_data()
-        Log.info("修复文件成功 ~")
+        log.info("修复文件成功 ~")
 
         # 恢复日志文件
         _restore_guardian_log()
 
     except Exception as e:
-        Log.error(f"修复失败，错误为：{e}")
+        log.error(f"修复失败，错误为：{e}")
 
 
 def update_guardian():
@@ -122,12 +124,12 @@ def update_guardian():
         # 备份更新前的目录到 rollback
         try:
             shutil.rmtree(os.path.join(guardianrecovery_path, "rollback"))
-            Log.info("成功清除了旧 rollback 目录 ~")
+            log.info("成功清除了旧 rollback 目录 ~")
         except:
             pass
         try:
             shutil.rmtree(os.path.join(guardian_path, "data"))
-            Log.info("成功清除了旧 data 目录 ~")
+            log.info("成功清除了旧 data 目录 ~")
         except:
             pass
         shutil.copytree(
@@ -142,7 +144,7 @@ def update_guardian():
             os.path.join(drivers_path),
             os.path.join(guardianrecovery_path, "rollback", "drivers"),
         )
-        Log.info("备份文件成功 ~")
+        log.info("备份文件成功 ~")
 
         # 从 update 目录更新文件
         shutil.rmtree(guardian_path)
@@ -151,18 +153,18 @@ def update_guardian():
             guardian_path,
             copy_function=lambda s, d: _copy_and_log(s, d, verb="更新"),
         )
-        Log.info("更新文件成功 ~")
+        log.info("更新文件成功 ~")
 
         # 恢复 data 目录
         _restore_guardian_data()
-        Log.info("恢复数据成功 ~")
+        log.info("恢复数据成功 ~")
 
         # 恢复日志
         _restore_guardian_log()
 
         # 删除 update 目录
         shutil.rmtree(os.path.join(guardianrecovery_path, "update"))
-        Log.info("删除更新包成功 ~")
+        log.info("删除更新包成功 ~")
 
         # 更新状态标识符
         os.remove(os.path.join(guardianrecovery_path, ".update"))
@@ -170,10 +172,10 @@ def update_guardian():
             f.write("")
         with open(os.path.join(guardian_path, ".afterupdate"), "w") as f:
             f.write("")
-        Log.info("更新状态标识符成功 ~")
+        log.info("更新状态标识符成功 ~")
 
     except Exception as e:
-        Log.error(f"升级失败，错误为：{e}")
+        log.error(f"升级失败，错误为：{e}")
 
 
 def rollback_guardian():
@@ -193,21 +195,21 @@ def rollback_guardian():
             os.path.join(guardianrecovery_path, "rollback", "drivers"),
             os.path.join(drivers_path),
         )
-        Log.info("回退文件成功 ~")
+        log.info("回退文件成功 ~")
 
         # 恢复 data 目录
         _restore_guardian_data()
-        Log.info("恢复数据成功 ~")
+        log.info("恢复数据成功 ~")
 
         # 恢复日志
         _restore_guardian_log()
 
         # 更新状态标识符
         os.remove(os.path.join(guardianrecovery_path, ".rollback"))
-        Log.info("更新状态标识符成功 ~")
+        log.info("更新状态标识符成功 ~")
 
     except Exception as e:
-        Log.error(f"回退失败，错误为：{e}")
+        log.error(f"回退失败，错误为：{e}")
 
 
 def main():
@@ -219,23 +221,23 @@ def main():
     # 获取 GuardianRecovery 路径
     guardianrecovery_path = _find_guardianrecovery_path()
     if not guardianrecovery_path:
-        Log.error("未找到可用的恢复环境。程序将会退出。")
+        log.error("未找到可用的恢复环境。程序将会退出。")
         time.sleep(2)
         sys.exit(0)
-    Log.logfile = os.path.join(guardianrecovery_path, "recovery.log")
-    Exec.clear_terminal()
-    Log.info("正在初始化预启动修复恢复环境...")
-    Log.info(f"寻找到了可用的恢复环境：{guardianrecovery_path}")
+    log.logfile = os.path.join(guardianrecovery_path, "recovery.log")
+    exec.clear_terminal()
+    log.info("正在初始化预启动修复恢复环境...")
+    log.info(f"寻找到了可用的恢复环境：{guardianrecovery_path}")
     guardianrecovery_device, _ = os.path.splitdrive(guardianrecovery_path)
     guardian_path = os.path.join(guardianrecovery_device, "Program Files", "Guardian")
     drivers_path = os.path.join(
         guardianrecovery_device, "Windows", "System32", "drivers"
     )
-    Log.info("初始化成功 ~")
+    log.info("初始化成功 ~")
 
     # 打印欢迎画面
     time.sleep(2)
-    Exec.clear_terminal()
+    exec.clear_terminal()
     print(r"""   ___ _            ___    _              _    ___                  _ _             ___                             
   / __| |__ _ _____|_ _|__| |__ _ _ _  __| |  / __|_  _ __ _ _ _ __| (_)__ _ _ _   | _ \___ __ _____ _____ _ _ _  _ 
  | (__| / _` (_-<_-<| |(_-< / _` | ' \/ _` | | (_ | || / _` | '_/ _` | / _` | ' \  |   / -_) _/ _ \ V / -_) '_| || |
@@ -248,24 +250,24 @@ def main():
 
     # 依据状态标志符确定操作类型
     if os.path.exists(os.path.join(guardianrecovery_path, ".rollback")):
-        Log.info("准备回退至更新前的版本... 稍安勿躁 ~")
+        log.info("准备回退至更新前的版本... 稍安勿躁 ~")
         time.sleep(2)
         rollback_guardian()
-        Bcd.set_windows_bcd_start()
+        bcd.set_windows_bcd_start()
     elif os.path.exists(os.path.join(guardianrecovery_path, ".update")):
-        Log.info("准备更新至最新版本... 稍安勿躁 ~")
+        log.info("准备更新至最新版本... 稍安勿躁 ~")
         time.sleep(2)
         update_guardian()
-        Bcd.set_recovery_bcd_start()
-        Bcd.set_windows_bcd_startonce()
+        bcd.set_recovery_bcd_start()
+        bcd.set_windows_bcd_startonce()
     else:
-        Log.info("准备修复至稳定版本... 稍安勿躁 ~")
+        log.info("准备修复至稳定版本... 稍安勿躁 ~")
         time.sleep(2)
         fix_guardian()
-        Bcd.set_windows_bcd_start()
+        bcd.set_windows_bcd_start()
 
     # 重启
-    Log.info("操作完成，系统将在 3 秒后重启 ~")
+    log.info("操作完成，系统将在 3 秒后重启 ~")
     time.sleep(3)
     subprocess.run(["wpeutil", "reboot"], check=True)
 

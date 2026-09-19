@@ -6,24 +6,23 @@ import shutil
 import zipfile
 from datetime import datetime
 
-from utils.exec import Exec
-from utils.log import Log
-from utils.process import Process
-
-Log = Log("snapshot")
+from utils.exec import ExecClass
+from utils.process import ProcessClass
 
 
-class Snapshot:
-    def __init__(self, db):
+class SnapshotClass:
+    def __init__(self, db, log):
         self.db = db
-        self.snapshot_path = os.path.join(Exec.get_exe_path(), "data", "snapshot")
+        self.log = log
+        self.exec = ExecClass(log)
+        self.snapshot_path = os.path.join(self.exec.get_exe_path(), "data", "snapshot")
         self.recovery_snapshot_path = os.path.join(
             os.environ.get("SystemDrive", "C:") + "\\",
             "GuardianRecovery",
             "data",
             "snapshot",
         )
-        self.Process = Process(db)
+        self.Process = ProcessClass(db, log)
         self.classisland_path = db.path.get("classisland_path")
 
     def _zip_dir(self, src, dst):
@@ -36,7 +35,7 @@ class Snapshot:
                         arcname = os.path.relpath(file_path, self.classisland_path)
                         zf.write(file_path, arcname)
         except Exception as e:
-            Log.error(f"压缩文件时出错，错误是：{e}")
+            self.log.error(f"压缩文件时出错，错误是：{e}")
         return True
 
     def list_snapshot(self):
@@ -46,12 +45,12 @@ class Snapshot:
             filelist.sort(reverse=True)
             return filelist
         except Exception as e:
-            Log.error(f"列出快照时出错，错误为：{e}")
+            self.log.error(f"列出快照时出错，错误为：{e}")
             return False
 
     def restore_snapshot(self, name):
         "恢复到指定的快照。 传入要恢复快照的文件名(string) 成功返回True，失败返回False"
-        Exec.kill_process(self.db.path.get("classisland_process_name"))
+        self.exec.kill_process(self.db.path.get("classisland_process_name"))
         if os.path.exists(os.path.join(self.snapshot_path, name)):
             try:
                 try:
@@ -61,13 +60,13 @@ class Snapshot:
                 os.mkdir(self.classisland_path)
                 with zipfile.ZipFile(os.path.join(self.snapshot_path, name), "r") as zf:
                     zf.extractall(path=self.classisland_path)
-                    Log.info(f"成功恢复到指定快照：{name}")
+                    self.log.info(f"成功恢复到指定快照：{name}")
                     return True
             except Exception as e:
-                Log.error(f"恢复时出错，错误为：{e}")
+                self.log.error(f"恢复时出错，错误为：{e}")
                 return False
         else:
-            Log.error("恢复时出错，指定的快照文件不存在")
+            self.log.error("恢复时出错，指定的快照文件不存在")
             return False
 
     def create_snapshot(self, name=None):
@@ -98,7 +97,7 @@ class Snapshot:
             else:
                 return False
         except Exception as e:
-            Log.error(f"压缩文件时出错，错误是：{e}")
+            self.log.error(f"压缩文件时出错，错误是：{e}")
             return False
 
     def remove_snapshot(self, name):
@@ -108,5 +107,5 @@ class Snapshot:
             os.remove(os.path.join(self.recovery_snapshot_path, name))
             return True
         except Exception as e:
-            Log.error(f"移除快照时出错，错误为：{e}")
+            self.log.error(f"移除快照时出错，错误为：{e}")
             return False

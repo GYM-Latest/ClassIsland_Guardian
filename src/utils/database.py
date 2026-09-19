@@ -4,9 +4,9 @@
 import os
 import sqlite3
 
-from .log import Log
+from .log import LogClass
 
-Log = Log("database")
+LogClass = LogClass("database")
 
 
 # 封装数据库方法
@@ -42,7 +42,7 @@ class Database:
                 return True
 
         except Exception as e:
-            Log.error(f"读取配置失败: {e}")
+            LogClass.error(f"读取配置失败: {e}")
             return False
 
     # 创建数据库，成功返回数据库路径，失败返回False
@@ -86,5 +86,5 @@ class Database:
                 return self.database_path
 
         except Exception as e:
-            Log.error(f"创建数据库时出错，错误为: {e}")
+            LogClass.error(f"创建数据库时出错，错误为: {e}")
             return False

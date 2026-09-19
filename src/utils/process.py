@@ -10,18 +10,17 @@ import time
 
 import psutil
 
-from utils.exec import Exec
-from utils.log import Log
-
-Log = Log("process")
+from utils.exec import ExecClass
 
 # ClassIsland 主程序固定文件名
 CLASSISLAND_PROCESS_NAME = "ClassIsland.Desktop.exe"
 
 
-class Process:
-    def __init__(self, db):
+class ProcessClass:
+    def __init__(self, db, log):
         self.db = db
+        self.log = log
+        self.exec = ExecClass(log)
 
     # 寻找最优的ClassIsland主程序路径并返回
     def _find_classisland_app_path(self, classisland_path):
@@ -95,12 +94,14 @@ class Process:
                 if self._is_real_classisland(proc.info.get("exe")):
                     count += 1
                 else:
-                    Log.warn(f"识别到疑似伪造的ClassIsland进程！详细信息：{proc.info}")
+                    self.log.warn(
+                        f"识别到疑似伪造的ClassIsland进程！详细信息：{proc.info}"
+                    )
                     try:
                         proc.kill()
-                        Log.info("已经成功清除伪造 ClassIsland 进程 ~")
+                        self.log.info("已经成功清除伪造 ClassIsland 进程 ~")
                     except Exception as e:
-                        Log.warn(f"清除伪造进程时失败，错误是：{e}")
+                        self.log.warn(f"清除伪造进程时失败，错误是：{e}")
         return count
 
     # 查找ClassIsland进程pid并返回
@@ -116,12 +117,14 @@ class Process:
                 if self._is_real_classisland(proc.info.get("exe")):
                     classisland_pid = proc.info["pid"]
                 else:
-                    Log.warn(f"识别到疑似伪造的ClassIsland进程！详细信息：{proc.info}")
+                    self.log.warn(
+                        f"识别到疑似伪造的ClassIsland进程！详细信息：{proc.info}"
+                    )
                     try:
                         proc.kill()
-                        Log.info("已经成功清除伪造 ClassIsland 进程 ~")
+                        self.log.info("已经成功清除伪造 ClassIsland 进程 ~")
                     except Exception as e:
-                        Log.warn(f"清除伪造进程时失败，错误是：{e}")
+                        self.log.warn(f"清除伪造进程时失败，错误是：{e}")
         if classisland_pid:
             return classisland_pid
         else:
@@ -130,7 +133,7 @@ class Process:
     # 启动ClassIsland
     def start_classisland(self):
         """依次尝试：删除 IFEO 劫持项，直接启动启动器，绕过启动器直接启动主程序。 成功返回 True ，失败返回 False"""
-        Exec.remove_ifeo(self.db.path.get("classisland_process_name"))
+        self.exec.remove_ifeo(self.db.path.get("classisland_process_name"))
 
         classisland_path = self.db.path.get("classisland_path")
         classisland_launcher_name = self.db.path.get("classisland_launcher_name")
@@ -150,28 +153,28 @@ class Process:
         ):
             return False
         # 直接启动启动器
-        if Exec.start(classisland_launcher_path):
+        if self.exec.start(classisland_launcher_path):
             time.sleep(5)
             status = self.check_classisland_status()
             if status >= 1:
-                Log.info("拉起成功，ClassIsland进程正常 ~")
+                self.log.info("拉起成功，ClassIsland进程正常 ~")
                 return True
-        Log.warn("启动启动器失败，尝试直接启动主程序 ~")
+        self.log.warn("启动启动器失败，尝试直接启动主程序 ~")
         # 绕过启动器直接启动主程序
-        if Exec.start(classisland_process_path):
+        if self.exec.start(classisland_process_path):
             time.sleep(5)
             status = self.check_classisland_status()
             if status >= 1:
-                Log.info("拉起成功，ClassIsland进程正常 ~")
+                self.log.info("拉起成功，ClassIsland进程正常 ~")
                 return True
-        Log.warn("直接启动主程序失败。")
+        self.log.warn("直接启动主程序失败。")
         return False
 
     # 关闭ClassIsland
     def kill_classisland(self):
         "关闭Classisland。 成功返回True，失败返回False"
-        if not Exec.kill_process(self.db.path.get("classisland_process_name")):
-            Log.info("关闭失败")
+        if not self.exec.kill_process(self.db.path.get("classisland_process_name")):
+            self.log.info("关闭失败")
             return False
         return True
 
@@ -179,13 +182,13 @@ class Process:
     def reboot_classisland(self):
         "重启Classisland。 成功返回True，失败返回False"
         if not self.kill_classisland():
-            Log.info("重启失败")
+            self.log.info("重启失败")
             return False
         time.sleep(3)
         if not self.start_classisland():
-            Log.info("重启失败")
+            self.log.info("重启失败")
             return False
-        Log.info("重启成功")
+        self.log.info("重启成功")
         return True
 
     # 生成随机文件名
@@ -208,7 +211,7 @@ class Process:
                         continue  # 当前副本可能在运行/待复用，跳过
                     if os.path.isdir(path):
                         shutil.rmtree(path, ignore_errors=True)
-                        Log.info(f"成功清理了遗留的逃逸目录：{path}")
+                        self.log.info(f"成功清理了遗留的逃逸目录：{path}")
 
             current_name = self.db.path.get("classisland_process_name", "")
             tmp_pattern = re.compile(
@@ -223,7 +226,7 @@ class Process:
                             continue
                         try:
                             os.remove(os.path.join(root, fname))
-                            Log.info(
+                            self.log.info(
                                 f"成功清理了遗留的逃逸文件：{os.path.join(root, fname)}"
                             )
                         except OSError:
@@ -236,7 +239,7 @@ class Process:
     # 逃逸式启动ClassIsland
     def escape_start_classisland(self):
         """依次尝试：删除 IFEO 劫持项，原目录改名启动，复制到随机目录启动，随机目录改名启动。 成功返回 True ，失败返回 False"""
-        Exec.remove_ifeo(self.db.path.get("classisland_process_name"))
+        self.exec.remove_ifeo(self.db.path.get("classisland_process_name"))
 
         classisland_path = self.db.path.get("classisland_path")
         classisland_process_name = self.db.path.get("classisland_process_name")
@@ -258,10 +261,10 @@ class Process:
                     _renamed_path,
                 )
             except OSError as e:
-                Log.warn(f"原目录改名启动复制失败，错误是：{e}")
+                self.log.warn(f"原目录改名启动复制失败，错误是：{e}")
                 continue
-            if Exec.start_and_check(_renamed_path):
-                Log.info("拉起成功，ClassIsland进程正常 ~")
+            if self.exec.start_and_check(_renamed_path):
+                self.log.info("拉起成功，ClassIsland进程正常 ~")
                 self.db.path["classisland_process_name"] = f"{_tmp_file_name}{_suffix}"
                 return True
 
@@ -283,10 +286,10 @@ class Process:
             self.db.path["classisland_path"] = escape_classisland_path
 
             # 原名启动
-            if Exec.start_and_check(
+            if self.exec.start_and_check(
                 os.path.join(escape_classisland_process_path, classisland_process_name)
             ):
-                Log.info("拉起成功，ClassIsland进程正常 ~")
+                self.log.info("拉起成功，ClassIsland进程正常 ~")
                 is_success = True
                 return True
 
@@ -301,21 +304,21 @@ class Process:
                     ),
                     _renamed_path,
                 )
-                if Exec.start_and_check(_renamed_path):
-                    Log.info("拉起成功，ClassIsland进程正常 ~")
+                if self.exec.start_and_check(_renamed_path):
+                    self.log.info("拉起成功，ClassIsland进程正常 ~")
                     is_success = True
                     self.db.path["classisland_process_name"] = (
                         f"{_tmp_file_name}{_suffix}"
                     )
                     return True
         except Exception as e:
-            Log.error(f"启动时出错，错误是：{e}")
+            self.log.error(f"启动时出错，错误是：{e}")
         finally:
             if not is_success:
                 # 失败：还原路径并清理逃逸目录
                 self.db.path["classisland_path"] = classisland_path
                 shutil.rmtree(escape_classisland_path, ignore_errors=True)
-        Log.warn("所有启动方法均失败。")
+        self.log.warn("所有启动方法均失败。")
         return False
 
     # 检查ClassIsland日志写入最后日期来检查ClassIsland是否卡死
@@ -336,7 +339,7 @@ class Process:
         now = time.time()
         elapsed = now - last_mtime
 
-        Log.info(
+        self.log.info(
             f"检查了 ClassIsland 日志，最后写入日期是：{time.ctime(last_mtime)}，距现在：{int(elapsed)}s"
         )
         return elapsed < 70

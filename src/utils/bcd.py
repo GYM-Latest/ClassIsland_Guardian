@@ -6,14 +6,12 @@ import re
 import shutil
 import subprocess
 
-from utils.log import Log
 
-Log = Log("bcd")
+class BcdClass:
+    def __init__(self, log):
+        self.log = log
 
-
-class Bcd:
-    @staticmethod
-    def _find_recovery_guid():
+    def _find_recovery_guid(self):
         """查找 ClassIsland Guardian Recovery BCD启动项对应的 GUID。 成功返回GUID(String)，失败返回False"""
         try:
             result = subprocess.run(
@@ -28,14 +26,13 @@ class Bcd:
                     current_guid = id_match.group(1)
                 if "ClassIsland Guardian Recovery" in line and current_guid:
                     return current_guid
-            Log.error("未能找到启动项GUID。")
+            self.log.error("未能找到启动项GUID。")
             return False
         except Exception as e:
-            Log.error(f"未能找到启动项GUID，错误是：{e}")
+            self.log.error(f"未能找到启动项GUID，错误是：{e}")
             return False
 
-    @staticmethod
-    def _find_windows_guid():
+    def _find_windows_guid(self):
         """查找 Windows BCD启动项对应的 GUID。 成功返回GUID(String)，失败返回False"""
         try:
             result = subprocess.run(
@@ -56,14 +53,13 @@ class Bcd:
                     and current_guid
                 ):
                     return current_guid
-            Log.error("未能找到 Windows 启动项 GUID。")
+            self.log.error("未能找到 Windows 启动项 GUID。")
             return False
         except Exception as e:
-            Log.error(f"未能找到 Windows 启动项 GUID，错误是：{e}")
+            self.log.error(f"未能找到 Windows 启动项 GUID，错误是：{e}")
             return False
 
-    @staticmethod
-    def _find_boot_sdi(system_device):
+    def _find_boot_sdi(self, system_device):
         """在系统中查找 boot.sdi 文件。 成功返回路径(String)，失败返回 False"""
         candidates = [
             f"{system_device}\\Windows\\Boot\\DVD\\PCAT\\boot.sdi",
@@ -84,12 +80,11 @@ class Bcd:
             pass
         return False
 
-    @staticmethod
-    def create_recovery_bcd():
+    def create_recovery_bcd(self):
         """为 GuardianRecovery\\recovery.wim 创建 BCD 启动项。 成功返回对应启动项的GUID(String)，失败返回 False"""
         try:
-            if Bcd._find_recovery_guid():
-                Log.error("创建 BCD启动项 失败，错误是：已经有同名启动项")
+            if self._find_recovery_guid():
+                self.log.error("创建 BCD启动项 失败，错误是：已经有同名启动项")
                 return False
             system_device = os.environ.get("SystemDrive", "C:")
             # 复制现有启动项
@@ -161,7 +156,7 @@ class Bcd:
                         capture_output=True,
                         text=True,
                     )
-                    Log.info("已创建 {ramdiskoptions} ~")
+                    self.log.info("已创建 {ramdiskoptions} ~")
                 subprocess.run(
                     [
                         "bcdedit",
@@ -186,17 +181,19 @@ class Bcd:
                     capture_output=True,
                     text=True,
                 )
-                Log.info("已配置 {ramdiskoptions} SDI 路径 ~")
+                self.log.info("已配置 {ramdiskoptions} SDI 路径 ~")
 
             # 复制 boot.sdi 文件
             boot_sdi_target_path = f"{system_device}\\GuardianRecovery\\boot.sdi"
-            boot_sdi_source_path = Bcd._find_boot_sdi(system_device)
+            boot_sdi_source_path = self._find_boot_sdi(system_device)
             if not boot_sdi_source_path:
-                Log.error("未找到系统内置 boot.sdi 文件，无法配置 {ramdiskoptions} ~")
+                self.log.error(
+                    "未找到系统内置 boot.sdi 文件，无法配置 {ramdiskoptions} ~"
+                )
                 return False
             os.makedirs(f"{system_device}\\GuardianRecovery", exist_ok=True)
             shutil.copy2(boot_sdi_source_path, boot_sdi_target_path)
-            Log.info("已复制 boot.sdi 文件 ~")
+            self.log.info("已复制 boot.sdi 文件 ~")
             # 添加到启动菜单
             subprocess.run(
                 ["bcdedit", "/displayorder", recovery_guid, "-addlast"], check=True
@@ -205,68 +202,63 @@ class Bcd:
             subprocess.run(["bcdedit", "/timeout", "0"], check=True)
             return recovery_guid
         except Exception as e:
-            Log.error(f"创建 BCD启动项 失败，错误是：{e}")
+            self.log.error(f"创建 BCD启动项 失败，错误是：{e}")
             return False
 
-    @staticmethod
-    def set_recovery_bcd_startonce():
+    def set_recovery_bcd_startonce(self):
         """设置下次启动从 Recovery 环境启动。 成功返回 True ，失败返回 False"""
         try:
-            recovery_guid = Bcd._find_recovery_guid()
+            recovery_guid = self._find_recovery_guid()
             if not recovery_guid:
                 return False
             subprocess.run(["bcdedit", "/bootsequence", recovery_guid], check=True)
             return True
         except Exception as e:
-            Log.error(f"设置单次启动项时失败，错误是：{e}")
+            self.log.error(f"设置单次启动项时失败，错误是：{e}")
             return False
 
-    @staticmethod
-    def set_recovery_bcd_start():
+    def set_recovery_bcd_start(self):
         """设置默认启动项为 Recovery 环境。 成功返回 True ，失败返回 False"""
         try:
-            recovery_guid = Bcd._find_recovery_guid()
+            recovery_guid = self._find_recovery_guid()
             if not recovery_guid:
                 return False
             subprocess.run(["bcdedit", "/default", recovery_guid], check=True)
             return True
         except Exception as e:
-            Log.error(f"设置默认启动项时失败，错误是：{e}")
+            self.log.error(f"设置默认启动项时失败，错误是：{e}")
             return False
 
-    @staticmethod
-    def set_windows_bcd_startonce():
+    def set_windows_bcd_startonce(self):
         """设置下次启动从 Windows 环境启动。 成功返回 True ，失败返回 False"""
         try:
-            windows_guid = Bcd._find_windows_guid()
+            windows_guid = self._find_windows_guid()
             if not windows_guid:
                 return False
             subprocess.run(["bcdedit", "/bootsequence", windows_guid], check=True)
             return True
         except Exception as e:
-            Log.error(f"设置单次启动项时失败，错误是：{e}")
+            self.log.error(f"设置单次启动项时失败，错误是：{e}")
             return False
 
-    @staticmethod
-    def set_windows_bcd_start():
+    def set_windows_bcd_start(self):
         """设置默认启动项为 Windows 环境。 成功返回 True ，失败返回 False"""
         try:
-            windows_guid = Bcd._find_windows_guid()
+            windows_guid = self._find_windows_guid()
             if not windows_guid:
                 return False
             subprocess.run(["bcdedit", "/default", windows_guid], check=True)
             return True
         except Exception as e:
-            Log.error(f"设置默认启动项时失败，错误是：{e}")
+            self.log.error(f"设置默认启动项时失败，错误是：{e}")
             return False
 
-    @staticmethod
-    def remove_recovery_bcd():
+    def remove_recovery_bcd(self):
         """为 GuardianRecovery\recovery.wim 移除 BCD 启动项。 成功返回 True ，失败返回 False"""
         try:
-            recovery_guid = Bcd._find_recovery_guid()
+            recovery_guid = self._find_recovery_guid()
             if not recovery_guid:
-                Log.error("移除BCD启动项时出错，错误是：未能找到启动项GUID")
+                self.log.error("移除BCD启动项时出错，错误是：未能找到启动项GUID")
                 return False
             subprocess.run(
                 ["bcdedit", "/delete", recovery_guid],
@@ -276,15 +268,14 @@ class Bcd:
             )
             return True
         except Exception as e:
-            Log.error(f"移除BCD启动项时出错，错误是：{e}")
+            self.log.error(f"移除BCD启动项时出错，错误是：{e}")
             return False
 
-    @staticmethod
-    def set_testmode():
+    def set_testmode(self):
         "开启测试模式。 成功返回 True ，失败返回 False 。"
         try:
             subprocess.run(["bcdedit", "/set", "testsigning", "on"], check=True)
             return True
         except Exception as e:
-            Log.warn(f"开启测试模式时出错，错误是：{e}")
+            self.log.warn(f"开启测试模式时出错，错误是：{e}")
             return False

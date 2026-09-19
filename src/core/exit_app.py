@@ -8,7 +8,6 @@ import ctypes
 import os
 import signal
 import sys
-import threading
 import time
 
 import win32api
@@ -16,10 +15,11 @@ import win32con
 import win32gui
 from apscheduler.schedulers.base import STATE_STOPPED
 
-from utils.exec import Exec
-from utils.log import Log
+from utils.exec import ExecClass
+from utils.log import LogClass
 
-Log = Log("shutdown")
+log = LogClass("Service.exit_app")
+exec = ExecClass(log)
 
 # you can override these variables in the main script if you want the windows shutdown screen to say something else
 APPNAME = os.path.basename(__file__)
@@ -56,19 +56,19 @@ def window_thread():
     def wndproc(hwnd, message, event_id, session_id):
         global EXIT_REASON
         if message == win32con.WM_CLOSE:
-            Log.info("WM_CLOSE 结束请求已被拦截。")
+            log.info("WM_CLOSE 结束请求已被拦截。")
             return 0
 
         if message == win32con.WM_DESTROY:
-            Log.info("收到 WM_DESTROY 通知。")
+            log.info("收到 WM_DESTROY 通知。")
             return 0
 
         if (
             message == win32con.WM_ENDSESSION
         ):  # WM_ENDSESSION gets called by windows once WM_QUERYENDSESSION returns True
             EXIT_REASON = win32con.WM_ENDSESSION
-            Exec.unmake_process_critical()
-            Log.info("系统正在关闭，Guardian正在退出...")
+            exec.unmake_process_critical()
+            log.info("系统正在关闭，Guardian正在退出...")
             if scheduler is not None and scheduler.state != STATE_STOPPED:
                 scheduler.shutdown(False)
             # 杀掉 Pyinstaller 引导器
@@ -188,13 +188,15 @@ def ConsoleCtrlHandler(sig):
         pass
 
 
-def init():
+def init(_scheduler):
+    global scheduler
+    scheduler = _scheduler
     patch_atexit()  # we monkey-patch atexit so that we can manually run the exit handlers later if we have to
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGBREAK, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     win32api.SetConsoleCtrlHandler(ConsoleCtrlHandler, True)
-    threading.Thread(target=window_thread, daemon=True).start()
+    window_thread()
 
 
 def patch_atexit():
@@ -217,6 +219,3 @@ def patch_atexit():
 
     atexit.register = atexit_register_new
     atexit.unregister = atexit_unregister_new
-
-
-init()

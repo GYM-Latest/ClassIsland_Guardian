@@ -4,12 +4,17 @@ import subprocess
 
 import readchar
 
-from utils.bcd import Bcd
-from utils.exec import Exec
+from utils.bcd import BcdClass
+from utils.exec import ExecClass
+from utils.log import LogClass
+
+log = LogClass("uninstall")
+exec = ExecClass(log)
+bcd = BcdClass(log)
 
 
 def main():
-    if not os.path.exists(os.path.join(Exec.get_exe_path(), ".uninstall")):
+    if not os.path.exists(os.path.join(exec.get_exe_path(), ".uninstall")):
         print("请在 config.exe 中触发卸载流程，而不是直接运行 uninstall.exe")
         print("按任意键退出...")
         readchar.readchar()
@@ -27,7 +32,7 @@ def main():
 
     print("正在进行卸载...")
     # 先删除 BCD 启动项
-    if not Bcd.remove_recovery_bcd():
+    if not bcd.remove_recovery_bcd():
         print("删除 BCD 启动项失败，请尝试手动删除。")
         print("按任意键继续卸载...")
         readchar.readchar()
