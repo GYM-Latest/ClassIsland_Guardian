@@ -90,8 +90,8 @@ def main():
         is_reboot = False
 
         # 初始化数据库
-        db = Database(exec.get_exe_path())
-        if not db.read_database():
+        db = Database(os.path.join(exec.get_exe_path(), 'data', 'guardian_config.db'))
+        if not db.read_database(log):
             bcd.set_recovery_bcd_start()
 
         # 标记关键进程
