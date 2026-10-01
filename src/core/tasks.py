@@ -7,6 +7,8 @@ from utils.log import LogClass
 from utils.process import ProcessClass
 from utils.snapshot import SnapshotClass
 from utils.update import UpdateClass
+from ui.main_window import start_main_window
+from ui.tray import start_tray
 from utils.version import VERSION
 
 
@@ -68,7 +70,7 @@ def reboot_classisland(process):
 
 
 # 30s轮询卡死检测任务
-def detect_classisland_pending():
+def check_classisland_multi():
     log = LogClass("Task.detect_classisland_pending")
     process = ProcessClass(db, log)
     if not process.check_classisland_frozen() and not scheduler.get_job(
@@ -115,19 +117,27 @@ def monitor_classisland():
             )
 
 
+# 检查更新任务
+def check_update():
+    log = LogClass("Task.update")
+    update = UpdateClass(log,db)
+    update.check_update()
+
 # 更新任务
 def update():
     log = LogClass("Task.update")
-    update = UpdateClass(log)
-    try:
-        latest_tag = update.check_update("pre")
-        if not latest_tag:
-            return False
-        system_drive = os.environ.get("SystemDrive", "C:") + "\\"
-        guardianrecovery_path = os.path.join(system_drive, "GuardianRecovery")
-        if latest_tag != VERSION and (
-            not os.path.exists(os.path.join(guardianrecovery_path, ".update"))
-        ):
-            update.update()
-    except Exception as e:
-        log.warn(f"更新失败，错误是：{e}")
+    update = UpdateClass(log,db)
+    update.update(db.state["latest_release"])
+
+# UI主窗口任务
+def main_window():
+    log = LogClass("Task.ui_main_window")
+
+    start_main_window(log, db, scheduler)
+
+
+# 托盘图标任务
+def tray():
+    log = LogClass("Task.ui_tray")
+
+    start_tray(log, db, scheduler)

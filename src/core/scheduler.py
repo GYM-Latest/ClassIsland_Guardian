@@ -3,6 +3,9 @@ from apscheduler.events import EVENT_JOB_ERROR
 from core import tasks
 from utils.log import LogClass
 
+# 守护任务列表，停止守护时会停止这里的任务
+PROTECT_JOB_LIST = {"monitor_classisland", "detect_classisland_pending"}
+
 
 # 调度器错误处理函数
 def task_error_handler(event):
@@ -29,14 +32,35 @@ def register_tasks(_scheduler, _db):
     # 注册调度器错误监听
     scheduler.add_listener(task_error_handler, EVENT_JOB_ERROR)
 
-    # 守护主循环
+    # 添加任务
+    add_protect_job()
+
+    # scheduler.add_job(
+    #     tasks.check_update,
+    #     "date",
+    #     id="check_update",
+    #     max_instances=1,
+    # )
+    # 测试用的UI任务
     scheduler.add_job(
-        tasks.detect_classisland_pending,
-        "interval",
-        seconds=30,
-        id="detect_classisland_pending",
+        tasks.tray,
+        "date",
+        id="test_ui",
         max_instances=1,
     )
+
+
+def is_guardian_jobs_running():
+    """检查是否有守护任务正在执行"""
+    for executor in scheduler._executors.values():
+        for job_id in executor._instances:
+            if job_id in PROTECT_JOB_LIST:
+                return True
+    return False
+
+
+def add_protect_job():
+    """添加守护任务进调度器。"""
     scheduler.add_job(
         tasks.monitor_classisland,
         "interval",
@@ -44,17 +68,18 @@ def register_tasks(_scheduler, _db):
         id="monitor_classisland",
         max_instances=1,
     )
-    scheduler.add_job(
-        tasks.update,
-        "interval",
-        seconds=7200,
-        id="update",
-        max_instances=1,
-    )
-    if not scheduler.get_job("update_boot"):
+    if db.config["kill_multi_ci"]:
         scheduler.add_job(
-            tasks.update,
-            "date",
-            id="update_boot",
+            tasks.check_classisland_multi,
+            "interval",
+            seconds=30,
+            id="check_classisland_multi",
             max_instances=1,
         )
+
+
+def remove_protect_job():
+    """移除守护任务出调度器。"""
+    for job_id in PROTECT_JOB_LIST:
+        if scheduler.get_job(job_id):
+            scheduler.remove_job(job_id)

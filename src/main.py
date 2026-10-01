@@ -10,6 +10,7 @@ try:
     import win32api
     import win32event
     from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.executors.pool import ThreadPoolExecutor
     from apscheduler.schedulers.base import STATE_STOPPED
     from winerror import ERROR_ALREADY_EXISTS
 
@@ -86,13 +87,29 @@ def main():
         exec = ExecClass(log)
 
         # 初始化调度器与热重启标志
-        scheduler = BackgroundScheduler()
+        executors = {
+            "default": ThreadPoolExecutor(10),
+            "main_window": ThreadPoolExecutor(1),
+        }
+        scheduler = BackgroundScheduler(executors=executors)
         is_reboot = False
 
         # 初始化数据库
-        db = Database(os.path.join(exec.get_exe_path(), 'data', 'guardian_config.db'))
-        if not db.read_database(log):
-            bcd.set_recovery_bcd_start()
+        db = Database(os.path.join(exec.get_exe_path(), "data", "config.db"))
+        if not db.read_database(log) and os.path.exists(
+            os.path.join(exec.get_exe_path(), "data", "guardian_config.db")
+        ):
+            log.info("检测到数据库需要迁移，正在迁移...")
+            db.database_path = os.path.join(
+                exec.get_exe_path(), "data", "guardian_config.db"
+            )
+            if db.read_v0_4_x_database(log):
+                db.database_path = os.path.join(
+                    exec.get_exe_path(), "data", "config.db"
+                )
+                if db.new_database(log):
+                    log.info("数据库迁移成功。")
+        db.save_database(log)
 
         # 标记关键进程
         exec.make_process_critical()
@@ -115,7 +132,6 @@ def main():
         # 这里调用 core/scheduler.py
         core.scheduler.register_tasks(scheduler, db)
         scheduler.start()
-
         # 运行 Service.app_exit()
         core.exit_app.init(scheduler)
 
