@@ -1,15 +1,13 @@
-import os
 import time
 
 import psutil
 
+from ui.main_window import start_main_window
+from ui.tray import start_tray
 from utils.log import LogClass
 from utils.process import ProcessClass
 from utils.snapshot import SnapshotClass
 from utils.update import UpdateClass
-from ui.main_window import start_main_window
-from ui.tray import start_tray
-from utils.version import VERSION
 
 
 # 依赖保存函数
@@ -23,14 +21,14 @@ def task_dependency_init(_scheduler, _db):
 def process_missing(log, process, snapshot):
     # 在拉起前，先检查 ClassIsland 是否有后备进程
     # 如果有，说明在重启，直接返回
-    if process.check_classisland_status() != 0:
+    if process.get_classisland_status() != 0:
         log.info("识别到 ClassIsland 正在重启，忽略......")
         return
 
     # 进程消失后短暂观察，等待可能的主动重启
     for _ in range(4):
         time.sleep(0.5)
-        if process.check_classisland_status() != 0:
+        if process.get_classisland_status() != 0:
             log.info("识别到 ClassIsland 正在重启，忽略......")
             return
 
@@ -73,7 +71,7 @@ def reboot_classisland(process):
 def check_classisland_multi():
     log = LogClass("Task.detect_classisland_pending")
     process = ProcessClass(db, log)
-    if not process.check_classisland_frozen() and not scheduler.get_job(
+    if not process.is_classisland_frozen() and not scheduler.get_job(
         "fixing_classisland"
     ):
         log.info("日志文件超过 70s 无更新，认定卡死，开始重启。")
@@ -92,7 +90,7 @@ def monitor_classisland():
     process = ProcessClass(db, log)
     snapshot = SnapshotClass(db, log)
 
-    result = process.find_classisland_pid()
+    result = process.get_classisland_pid()
     if result:
         try:
             psutil.Process(result).wait(4)
@@ -120,14 +118,16 @@ def monitor_classisland():
 # 检查更新任务
 def check_update():
     log = LogClass("Task.update")
-    update = UpdateClass(log,db)
+    update = UpdateClass(log, db)
     update.check_update()
+
 
 # 更新任务
 def update():
     log = LogClass("Task.update")
-    update = UpdateClass(log,db)
+    update = UpdateClass(log, db)
     update.update(db.state["latest_release"])
+
 
 # UI主窗口任务
 def main_window():

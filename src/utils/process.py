@@ -9,6 +9,7 @@ import tempfile
 import time
 
 import psutil
+import pywinctl as pwc
 
 from utils.exec import ExecClass
 
@@ -23,7 +24,7 @@ class ProcessClass:
         self.exec = ExecClass(log)
 
     # 寻找最优的ClassIsland主程序路径并返回
-    def _find_classisland_app_path(self, classisland_path):
+    def _get_classisland_app_path(self, classisland_path):
         """寻找最优的 ClassIsland 版本路径，传入ClassIsland根路径。成功返回 路径(String) ，失败返回 False"""
         if not os.path.isdir(classisland_path):
             return False
@@ -67,6 +68,7 @@ class ProcessClass:
         else:
             return False
 
+    # 校验进程exe路径是否在classisland_path下
     def _is_real_classisland(self, exe):
         "校验进程 exe 路径是否在 classisland_path 下。 真实返回 True，伪造返回 False"
         if not exe:
@@ -82,7 +84,7 @@ class ProcessClass:
             return False
 
     # 检查ClassIsland进程数量并返回
-    def check_classisland_status(self):
+    def get_classisland_status(self):
         "检查Classisland进程数量。 返回Classisland进程数量(int)"
         classisland_process_name = self.db.path.get("classisland_process_name").lower()
         count = 0
@@ -90,22 +92,12 @@ class ProcessClass:
             if (
                 proc.info.get("name")
                 and proc.info["name"].lower() == classisland_process_name
-            ):
-                if self._is_real_classisland(proc.info.get("exe")):
-                    count += 1
-                else:
-                    self.log.warn(
-                        f"识别到疑似伪造的ClassIsland进程！详细信息：{proc.info}"
-                    )
-                    try:
-                        proc.kill()
-                        self.log.info("已经成功清除伪造 ClassIsland 进程 ~")
-                    except Exception as e:
-                        self.log.warn(f"清除伪造进程时失败，错误是：{e}")
+            ) and self._is_real_classisland(proc.info.get("exe")):
+                count += 1
         return count
 
     # 查找ClassIsland进程pid并返回
-    def find_classisland_pid(self):
+    def get_classisland_pid(self):
         "查找ClassIsland进程pid。 返回Classisland进程pid(int)，若未找到，返回False(bool)"
         classisland_process_name = self.db.path.get("classisland_process_name").lower()
         classisland_pid = None
@@ -113,22 +105,35 @@ class ProcessClass:
             if (
                 proc.info.get("name")
                 and proc.info["name"].lower() == classisland_process_name
-            ):
-                if self._is_real_classisland(proc.info.get("exe")):
-                    classisland_pid = proc.info["pid"]
-                else:
-                    self.log.warn(
-                        f"识别到疑似伪造的ClassIsland进程！详细信息：{proc.info}"
-                    )
-                    try:
-                        proc.kill()
-                        self.log.info("已经成功清除伪造 ClassIsland 进程 ~")
-                    except Exception as e:
-                        self.log.warn(f"清除伪造进程时失败，错误是：{e}")
+            ) and self._is_real_classisland(proc.info.get("exe")):
+                classisland_pid = proc.info["pid"]
         if classisland_pid:
             return classisland_pid
         else:
             return False
+
+    # 查杀不在安装目录下的ClassIsland
+    def kill_non_install_classisland(self):
+        "尝试查杀不在安装目录下的 ClassIsland 。"
+        classisland_process_name = self.db.path.get("classisland_process_name").lower()
+        for proc in psutil.process_iter(["name", "exe"]):
+            if (
+                proc.info.get("name")
+                and proc.info["name"].lower() == classisland_process_name
+            ) and not self._is_real_classisland(proc.info.get("exe")):
+                try:
+                    proc.kill()
+                    self.log.info("已经成功清除伪造 ClassIsland 进程 ~")
+                except Exception as e:
+                    self.log.warn(f"清除伪造进程时失败，错误是：{e}")
+        return False
+
+    # 检查classisland是否崩溃并返回
+    def is_classisland_crash(self):
+        "检查 ClassIsland 是否崩溃。 已崩溃返回 True，未崩溃返回 False"
+        for win in pwc.getAllWindows():
+            if "ClassIsland 崩溃报告" in win.title:
+                pass  # 没写完
 
     # 启动ClassIsland
     def start_classisland(self):
@@ -141,11 +146,11 @@ class ProcessClass:
             classisland_path, classisland_launcher_name
         )
         classisland_process_name = self.db.path.get("classisland_process_name")
-        if not self._find_classisland_app_path(classisland_path):
+        if not self._get_classisland_app_path(classisland_path):
             # 找不到可用版本不尝试启动
             return False
         classisland_process_path = os.path.join(
-            self._find_classisland_app_path(classisland_path), classisland_process_name
+            self._get_classisland_app_path(classisland_path), classisland_process_name
         )
         # 文件丢失就不尝试启动
         if not classisland_process_path or not os.path.exists(
@@ -155,7 +160,7 @@ class ProcessClass:
         # 直接启动启动器
         if self.exec.start(classisland_launcher_path):
             time.sleep(5)
-            status = self.check_classisland_status()
+            status = self.get_classisland_status()
             if status >= 1:
                 self.log.info("拉起成功，ClassIsland进程正常 ~")
                 return True
@@ -163,7 +168,7 @@ class ProcessClass:
         # 绕过启动器直接启动主程序
         if self.exec.start(classisland_process_path):
             time.sleep(5)
-            status = self.check_classisland_status()
+            status = self.get_classisland_status()
             if status >= 1:
                 self.log.info("拉起成功，ClassIsland进程正常 ~")
                 return True
@@ -193,7 +198,7 @@ class ProcessClass:
 
     # 生成随机文件名
     @staticmethod
-    def _random_name(k=6):
+    def _get_random_name(k=6):
         return "tmp_" + "".join(
             random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=k)
         )
@@ -243,13 +248,13 @@ class ProcessClass:
 
         classisland_path = self.db.path.get("classisland_path")
         classisland_process_name = self.db.path.get("classisland_process_name")
-        classisland_process_dir = self._find_classisland_app_path(classisland_path)
+        classisland_process_dir = self._get_classisland_app_path(classisland_path)
         if not classisland_process_dir:
             return False
 
         self._cleanup_old_escape_dirs()
 
-        _tmp_file_name = self._random_name()
+        _tmp_file_name = self._get_random_name()
         # 原目录改名启动
         for _suffix in (".exe", ".com", ".HelloWRC"):
             _renamed_path = os.path.join(
@@ -277,7 +282,7 @@ class ProcessClass:
             shutil.copytree(
                 classisland_path, escape_classisland_path, dirs_exist_ok=True
             )
-            escape_classisland_process_path = self._find_classisland_app_path(
+            escape_classisland_process_path = self._get_classisland_app_path(
                 escape_classisland_path
             )
             if not escape_classisland_process_path:
@@ -322,7 +327,7 @@ class ProcessClass:
         return False
 
     # 检查ClassIsland日志写入最后日期来检查ClassIsland是否卡死
-    def check_classisland_frozen(self):
+    def is_classisland_frozen(self):
         classisland_log_path = os.path.join(
             self.db.path.get("classisland_path"), "data", "Logs"
         )

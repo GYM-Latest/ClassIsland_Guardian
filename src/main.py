@@ -9,8 +9,8 @@ try:
 
     import win32api
     import win32event
-    from apscheduler.schedulers.background import BackgroundScheduler
     from apscheduler.executors.pool import ThreadPoolExecutor
+    from apscheduler.schedulers.background import BackgroundScheduler
     from apscheduler.schedulers.base import STATE_STOPPED
     from winerror import ERROR_ALREADY_EXISTS
 

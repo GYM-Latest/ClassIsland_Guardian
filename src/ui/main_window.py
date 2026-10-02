@@ -3,9 +3,8 @@ import os
 import sys
 
 from PySide6.QtWidgets import QApplication
-from PySide6.QtQml import QQmlApplicationEngine
-
 from RinUI import RinUIWindow
+
 from ui.backend import UiBackend
 
 backend = None

@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 GYM_Latest
 
-import os
 import sqlite3
 import time
-from utils.version import CODENAME, VERSION
+
+from utils.version import VERSION
 
 
 # 封装数据库方法
@@ -32,60 +32,46 @@ class Database:
 
         self.config["protect_state"] = self.config.get("protect_state") or "running"
         self.config["kill_non_install_ci"] = (
-            True if self.config.get("kill_non_install_ci") == "true" else False
+            self.config.get("kill_non_install_ci") == "true"
         )
-        self.config["kill_multi_ci"] = (
-            True if self.config.get("kill_multi_ci") == "true" else False
-        )
+        self.config["kill_multi_ci"] = self.config.get("kill_multi_ci") == "true"
         self.config["launch_ci_as_system"] = (
-            True if self.config.get("launch_ci_as_system") == "true" else False
+            self.config.get("launch_ci_as_system") == "true"
         )
         self.config["launch_ci_as_uiaccess"] = (
-            True if self.config.get("launch_ci_as_uiaccess") == "true" else False
+            self.config.get("launch_ci_as_uiaccess") == "true"
         )
         self.config["auto_restart_frozen_ci"] = (
-            False if self.config.get("auto_restart_frozen_ci") == "false" else True
+            self.config.get("auto_restart_frozen_ci") != "false"
         )
-        self.config["escape_launch_ci"] = (
-            False if self.config.get("escape_launch_ci") == "false" else True
-        )
+        self.config["escape_launch_ci"] = self.config.get("escape_launch_ci") != "false"
         self.config["rollback_before_launch"] = (
-            True if self.config.get("rollback_before_launch") == "true" else False
+            self.config.get("rollback_before_launch") == "true"
         )
-        self.config["rollback_on_fail"] = (
-            False if self.config.get("rollback_on_fail") == "false" else True
-        )
+        self.config["rollback_on_fail"] = self.config.get("rollback_on_fail") != "false"
         self.config["rollback_on_crash"] = (
-            False if self.config.get("rollback_on_crash") == "false" else True
+            self.config.get("rollback_on_crash") != "false"
         )
         self.config["auto_cleanup_snapshot"] = (
-            False if self.config.get("auto_cleanup_snapshot") == "false" else True
+            self.config.get("auto_cleanup_snapshot") != "false"
         )
         self.config["max_snapshot_count"] = int(
             self.config.get("max_snapshot_count") or 5
         )
         self.config["auto_install_dotnet"] = (
-            True if self.config.get("auto_install_dotnet") == "true" else False
+            self.config.get("auto_install_dotnet") == "true"
         )
-        self.config["cig_professional"] = (
-            True if self.config.get("cig_professional") == "true" else False
-        )
-        self.config["critical_process"] = (
-            False if self.config.get("critical_process") == "false" else True
-        )
+        self.config["cig_professional"] = self.config.get("cig_professional") == "true"
+        self.config["critical_process"] = self.config.get("critical_process") != "false"
         self.config["window_top_mode"] = (
             self.config.get("window_top_mode") or "uiaccess"
         )
         self.config["auto_download_update"] = (
-            False if self.config.get("auto_download_update") == "false" else True
+            self.config.get("auto_download_update") != "false"
         )
         self.config["update_channel"] = self.config.get("update_channel") or "stable"
-        self.config["tray_icon"] = (
-            False if self.config.get("tray_icon") == "false" else True
-        )
-        self.config["notification"] = (
-            False if self.config.get("notification") == "false" else True
-        )
+        self.config["tray_icon"] = self.config.get("tray_icon") != "false"
+        self.config["notification"] = self.config.get("notification") != "false"
         self.config["task_error_mode"] = (
             self.config.get("task_error_mode") or "silent_disable"
         )

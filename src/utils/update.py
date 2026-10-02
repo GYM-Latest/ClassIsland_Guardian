@@ -123,7 +123,7 @@ class UpdateClass:
                 self.log.error(f"从 {proxy} 下载时失败：{e}，回退至下一个镜像站")
 
         if self.db.state["update_status"] != "downloadsuccess":
-            self.log.info(f"全部源下载失败。")
+            self.log.info("全部源下载失败。")
             self.db.state["update_status"] = "error"
             return False
 

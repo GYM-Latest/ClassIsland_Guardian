@@ -1,5 +1,4 @@
-import time
-from PySide6.QtCore import QObject, Property, Signal, QTimer, Slot
+from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 
 
 class UiBackend(QObject):
@@ -44,7 +43,7 @@ class UiBackend(QObject):
 
     @Slot()
     def temp_stop_protection(self):
-        from core.scheduler import PROTECT_JOB_LIST, is_guardian_jobs_running
+        from core.scheduler import PROTECT_JOB_LIST
 
         self.set_value("config", "protect_state", "tempstop")
         self.showTransition.emit()
@@ -73,6 +72,7 @@ class UiBackend(QObject):
     @Slot()
     def check_update(self):
         from core.tasks import check_update
+
         self.scheduler.add_job(
             check_update,
             "date",
@@ -83,13 +83,13 @@ class UiBackend(QObject):
     @Slot()
     def update(self):
         from core.tasks import update
+
         self.scheduler.add_job(
             update,
             "date",
             id="check_update",
             max_instances=1,
         )
-        
 
     def _wait_guardian_jobs_end(self):
         from core.scheduler import is_guardian_jobs_running
