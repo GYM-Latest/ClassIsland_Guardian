@@ -111,8 +111,9 @@ def main():
                     log.info("数据库迁移成功。")
         db.save_database(log)
 
-        # 标记关键进程
-        exec.make_process_critical()
+        # 按照配置标记关键进程
+        if db.config.get("critical_process"):
+            exec.make_process_critical()
 
         log.info(f"ClassIsland Guardian 已启动 ~ | 版本：{VERSION} ({CODENAME})")
 
