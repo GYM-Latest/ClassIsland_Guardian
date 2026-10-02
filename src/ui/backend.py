@@ -18,6 +18,10 @@ class UiBackend(QObject):
         self.timer.start(500)
 
     @Property("QVariantMap", notify=dataChanged)
+    def path(self):
+        return dict(self.db.path)
+
+    @Property("QVariantMap", notify=dataChanged)
     def state(self):
         return dict(self.db.state)
 
@@ -29,7 +33,7 @@ class UiBackend(QObject):
     def meta(self):
         return dict(self.db.meta)
 
-    @Slot()
+    @Slot(str, str, "QVariant")
     def set_value(self, target, key, value):
         match target:
             case "path":
