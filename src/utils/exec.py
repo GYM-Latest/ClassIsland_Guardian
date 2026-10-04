@@ -60,8 +60,11 @@ class ExecClass:
         "带映像劫持对抗的启动指定程序，并检查是否已启动成功。 传入要启动文件的路径(string) 成功返回True，失败返回False"
         if not self.start(path):
             return False
-        time.sleep(5)
-        return self.check_process_by_path(path) >= 1
+        for _ in range(0,50):
+            time.sleep(0.1)
+            if self.get_process_by_path(path) >= 1:
+                return True
+        return False
 
     # 带映像劫持对抗的启动应用程序
     def start(self, path):
@@ -143,7 +146,7 @@ class ExecClass:
             return False
 
     # 检查指定进程数量
-    def check_process_by_path(self, path: str):
+    def get_process_by_path(self, path: str):
         "通过进程的可执行文件路径检查进程数量，返回匹配路径的进程数量。"
         import psutil
 
