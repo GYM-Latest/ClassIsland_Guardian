@@ -31,8 +31,12 @@ def start_main_window(log, db, scheduler):
         try:
             hwnd = int(window.root_window.winId())
             win32gui.SetWindowPos(
-                hwnd, win32con.HWND_TOPMOST,
-                0, 0, 0, 0,
+                hwnd,
+                win32con.HWND_TOPMOST,
+                0,
+                0,
+                0,
+                0,
                 win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
             )
             log.info("成功设置了窗口置顶")

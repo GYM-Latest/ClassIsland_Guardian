@@ -11,7 +11,9 @@ PROTECT_JOB_LIST = {"monitor_classisland", "detect_classisland_pending"}
 def task_error_handler(event):
     log = LogClass("Service.task_error_handler")
     try:
-        log.error(f"任务 {event.job_id} 发生未被捕获的异常，错误是： {event.exception}")
+        log.error(
+            f"任务 {event.job_id} 发生未被捕获的异常，错误是： {event.exception}, 堆栈是：{event.traceback}"
+        )
         scheduler.remove_job(event.job_id)
         log.info(
             f"成功禁用发生异常的任务：{event.job_id}，当前任务列表：{scheduler.get_jobs()}"
@@ -32,20 +34,22 @@ def register_tasks(_scheduler, _db):
     # 注册调度器错误监听
     scheduler.add_listener(task_error_handler, EVENT_JOB_ERROR)
 
-    # 添加任务
+    # 添加保护任务
     add_protect_job()
 
+    # 添加其他任务
     # scheduler.add_job(
     #     tasks.check_update,
     #     "date",
     #     id="check_update",
     #     max_instances=1,
     # )
+
     # 测试用的UI任务
     scheduler.add_job(
         tasks.tray,
         "date",
-        id="test_ui",
+        id="ui_tray",
         max_instances=1,
     )
 
@@ -62,20 +66,19 @@ def is_guardian_jobs_running():
 def add_protect_job():
     """添加守护任务进调度器。"""
     scheduler.add_job(
-        tasks.monitor_classisland,
+        tasks.monitor_classisland_process,
         "interval",
         seconds=5,
-        id="monitor_classisland",
+        id="monitor_classisland_process",
         max_instances=1,
     )
-    if db.config["kill_multi_ci"]:
-        scheduler.add_job(
-            tasks.check_classisland_multi,
-            "interval",
-            seconds=30,
-            id="check_classisland_multi",
-            max_instances=1,
-        )
+    scheduler.add_job(
+        tasks.check_classisland_issue,
+        "interval",
+        seconds=30,
+        id="check_classisland_issue",
+        max_instances=1,
+    )
 
 
 def remove_protect_job():
