@@ -6,6 +6,7 @@ import random
 import re
 import shutil
 import tempfile
+import win32process
 import time
 
 import psutil
@@ -112,28 +113,43 @@ class ProcessClass:
         else:
             return False
 
-    # 查杀不在安装目录下的ClassIsland
-    def kill_non_install_classisland(self):
-        "尝试查杀不在安装目录下的 ClassIsland 。"
-        classisland_process_name = self.db.path.get("classisland_process_name").lower()
-        for proc in psutil.process_iter(["name", "exe"]):
-            if (
-                proc.info.get("name")
-                and proc.info["name"].lower() == classisland_process_name
-            ) and not self._is_real_classisland(proc.info.get("exe")):
-                try:
-                    proc.kill()
-                    self.log.info("已经成功清除伪造 ClassIsland 进程 ~")
-                except Exception as e:
-                    self.log.warn(f"清除伪造进程时失败，错误是：{e}")
-        return False
-
     # 检查classisland是否崩溃并返回
     def is_classisland_crash(self):
         "检查 ClassIsland 是否崩溃。 已崩溃返回 True，未崩溃返回 False"
         for win in pwc.getAllWindows():
-            if "ClassIsland 崩溃报告" in win.title:
-                pass  # 没写完
+            title = win.title
+            if title and "ClassIsland 崩溃报告" in title:
+                try:
+                    _, pid = win32process.GetWindowThreadProcessId(win._hWnd)
+                    proc = psutil.Process(pid)
+                    if self._is_real_classisland(proc.exe):
+                        return True
+                except Exception as e:
+                    self.log.warn(f"获取进程信息时出错，错误是：{e}")
+        return False
+
+    # 检查ClassIsland日志写入最后日期来检查ClassIsland是否卡死
+    def is_classisland_frozen(self):
+        "检查ClassIsland日志写入最后日期来检查ClassIsland是否卡死,卡死返回 True(bool) , 未卡死返回 False(bool)"
+        classisland_log_path = os.path.join(
+            self.db.path.get("classisland_path"), "data", "Logs"
+        )
+        if not os.path.isdir(classisland_log_path):
+            return False
+        files = [
+            os.path.join(classisland_log_path, f)
+            for f in os.listdir(classisland_log_path)
+            if f.startswith("log-") and f.endswith(".log")
+        ]
+        if not files:
+            return False
+        latest_file = max(files, key=os.path.getmtime)
+
+        last_mtime = os.path.getmtime(latest_file)
+        now = time.time()
+        elapsed = now - last_mtime
+
+        return elapsed >= 70
 
     # 启动ClassIsland
     def start_classisland(self):
@@ -158,19 +174,12 @@ class ProcessClass:
         ):
             return False
         # 直接启动启动器
-        if self.exec.start(classisland_launcher_path):
-            time.sleep(5)
-            status = self.get_classisland_status()
-            if status >= 1:
-                self.log.info("拉起成功，ClassIsland进程正常 ~")
+        if self.exec.start_and_check(classisland_launcher_path):
                 return True
         self.log.warn("启动启动器失败，尝试直接启动主程序 ~")
         # 绕过启动器直接启动主程序
-        if self.exec.start(classisland_process_path):
-            time.sleep(5)
-            status = self.get_classisland_status()
-            if status >= 1:
-                self.log.info("拉起成功，ClassIsland进程正常 ~")
+        if self.exec.start_and_check(classisland_process_path):
+
                 return True
         self.log.warn("直接启动主程序失败。")
         return False
@@ -179,7 +188,7 @@ class ProcessClass:
     def kill_classisland(self):
         "关闭Classisland。 成功返回True，失败返回False"
         if not self.exec.kill_process(self.db.path.get("classisland_process_name")):
-            self.log.info("关闭失败")
+            self.log.info("关闭 ClassIsland 失败")
             return False
         return True
 
@@ -326,25 +335,34 @@ class ProcessClass:
         self.log.warn("所有启动方法均失败。")
         return False
 
-    # 检查ClassIsland日志写入最后日期来检查ClassIsland是否卡死
-    def is_classisland_frozen(self):
-        classisland_log_path = os.path.join(
-            self.db.path.get("classisland_path"), "data", "Logs"
-        )
-        files = [
-            os.path.join(classisland_log_path, f)
-            for f in os.listdir(classisland_log_path)
-            if f.startswith("log-") and f.endswith(".log")
-        ]
-        if not files:
-            return True
-        latest_file = max(files, key=os.path.getmtime)
+    # 查杀不在安装目录下的ClassIsland
+    def kill_non_install_classisland(self):
+        "尝试查杀不在安装目录下的 ClassIsland 。"
+        classisland_process_name = self.db.path.get("classisland_process_name").lower()
+        for proc in psutil.process_iter(["name", "exe"]):
+            if (
+                proc.info.get("name")
+                and proc.info["name"].lower() == classisland_process_name
+            ) and not self._is_real_classisland(proc.info.get("exe")):
+                try:
+                    proc.kill()
+                    self.log.info(
+                        f"已经成功清除非安装目录下的 ClassIsland 实例：{proc.info.get('exe')}"
+                    )
+                except Exception as e:
+                    self.log.warn(f"清除伪造进程时失败，错误是：{e}")
 
-        last_mtime = os.path.getmtime(latest_file)
-        now = time.time()
-        elapsed = now - last_mtime
-
-        self.log.info(
-            f"检查了 ClassIsland 日志，最后写入日期是：{time.ctime(last_mtime)}，距现在：{int(elapsed)}s"
-        )
-        return elapsed < 70
+    # 查杀ClassIsland的多开实例
+    def kill_multi_ci(self):
+        "尝试查杀 ClassIsland 的多开实例。"
+        for win in pwc.getAllWindows():
+            title = win.title
+            if title and "ClassIsland 已在运行" in title:
+                try:
+                    _, pid = win32process.GetWindowThreadProcessId(win._hWnd)
+                    proc = psutil.Process(pid)
+                    if self._is_real_classisland(proc.exe()):
+                        proc.kill()
+                        self.log.warn(f"成功查杀了多开的 ClassIsland 实例：{proc.pid}")
+                except Exception as e:
+                    self.log.warn(f"获取进程信息或查杀时出错，错误是：{e}")

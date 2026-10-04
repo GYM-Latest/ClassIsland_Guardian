@@ -67,12 +67,14 @@ def reboot_classisland(process):
     process.reboot_classisland()
 
 
-# 30s轮询卡死检测任务
-def check_classisland_multi():
-    log = LogClass("Task.detect_classisland_pending")
+# 30s轮询检查classisland状态
+def check_classisland_issue():
+    log = LogClass("Task.check_classisland_issue")
     process = ProcessClass(db, log)
-    if not process.is_classisland_frozen() and not scheduler.get_job(
-        "fixing_classisland"
+    if (
+        db.config.get("auto_restart_frozen_ci")
+        and process.is_classisland_frozen()
+        and not scheduler.get_job("fixing_classisland")
     ):
         log.info("日志文件超过 70s 无更新，认定卡死，开始重启。")
         scheduler.add_job(
@@ -83,13 +85,25 @@ def check_classisland_multi():
             args=[process],
         )
 
+    if db.config.get("rollback_on_crash"):
+        pass
 
-# 监控任务
-def monitor_classisland():
-    log = LogClass("Task.monitor_classisland")
+
+# 监控classisland进程任务
+def monitor_classisland_process():
+    log = LogClass("Task.monitor_classisland_process")
     process = ProcessClass(db, log)
     snapshot = SnapshotClass(db, log)
 
+    # 根据配置查杀非目录进程
+    if db.config.get("kill_non_install_ci"):
+        process.kill_non_install_classisland()
+
+    # 根据配置查杀多开进程
+    if db.config.get("kill_multi_ci"):
+        process.kill_multi_ci()
+
+    # 阻塞等待进程退出
     result = process.get_classisland_pid()
     if result:
         try:
