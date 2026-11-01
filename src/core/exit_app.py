@@ -9,6 +9,9 @@ import os
 import signal
 import sys
 import time
+from collections.abc import Callable
+from types import FrameType
+from typing import Any
 
 import win32api
 import win32con
@@ -33,7 +36,7 @@ RETURN_CODE_WM_CLOSE = -1073741510
 RETURN_CODE_WM_ENDSESSION = -1073741510
 
 # 由主脚本在创建调度器后注入：utils.win_graceful_shutdown.scheduler = scheduler
-scheduler = None
+scheduler: Any = None
 
 
 # you can manually send test signals from another python process like this:
@@ -41,19 +44,21 @@ scheduler = None
 # win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
 
 EXIT_HANDLERS_RUNNING = False
-EXIT_REASON = None
+EXIT_REASON: int | None = None
 
 ucrtbase = ctypes.CDLL("ucrtbase")
 c_raise = ucrtbase["raise"]
 
 
-def window_thread():
+def window_thread() -> None:
     hinst = win32api.GetModuleHandle(None)
     wndclass = win32gui.WNDCLASS()
     wndclass.hInstance = hinst
     wndclass.lpszClassName = "WindowClass"
 
-    def wndproc(hwnd, message, event_id, session_id):
+    def wndproc(
+        hwnd: int, message: int, event_id: int, session_id: int
+    ) -> int | bool | None:
         global EXIT_REASON
         if message == win32con.WM_CLOSE:
             log.info("WM_CLOSE 结束请求已被拦截。")
@@ -117,7 +122,7 @@ def window_thread():
     win32gui.PumpMessages()  # blocks until PostQuitMessage() is called
 
 
-def first_exit():
+def first_exit() -> None:
     # if is possible for two instances of the exit handlers to run. For example,
     # if someone hits ctrl-c and then closes the window (SIGINT then RETURN_CTRL_CLOSE_EVENT) then atexit will be called twice.
     # we are using the EXIT_HANDLERS_RUNNING variable as a kind of lock to prevent that from happening
@@ -127,7 +132,7 @@ def first_exit():
 
 # if we don't put a signal handler in to handle SIGINT and SIGBREAK,
 # they will cause a keyboard interrupt somewhere random before atexit handlers can run (or even inside them)
-def signal_handler(sig, frame):
+def signal_handler(sig: int, frame: FrameType | None) -> None:
     global EXIT_REASON
     if not EXIT_HANDLERS_RUNNING:
         RETURN_CODE = 0
@@ -153,7 +158,7 @@ def signal_handler(sig, frame):
         sys.exit(RETURN_CODE)
 
 
-def ConsoleCtrlHandler(sig):
+def ConsoleCtrlHandler(sig: int) -> None:
     global EXIT_REASON
     if sig == win32con.CTRL_CLOSE_EVENT:
         if not EXIT_HANDLERS_RUNNING:
@@ -188,7 +193,7 @@ def ConsoleCtrlHandler(sig):
         pass
 
 
-def init(_scheduler):
+def init(_scheduler: Any) -> None:
     global scheduler
     scheduler = _scheduler
     patch_atexit()  # we monkey-patch atexit so that we can manually run the exit handlers later if we have to
@@ -199,18 +204,20 @@ def init(_scheduler):
     window_thread()
 
 
-def patch_atexit():
+def patch_atexit() -> None:
     atexit.origional_register = atexit.register
     atexit.origional_unregister = atexit.unregister
     atexit.registered_functions = []
 
-    def atexit_register_new(func, *args, **kwargs):
+    def atexit_register_new(
+        func: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> None:
         atexit.origional_register(func, *args, **kwargs)
         atexit.registered_functions.append(
             {"args": args, "kwargs": kwargs, "func": func}
         )
 
-    def atexit_unregister_new(func):
+    def atexit_unregister_new(func: Callable[..., Any]) -> None:
         atexit.origional_unregister(func)
         # remove all items from the registered_functions list in which the func is the same
         atexit.registered_functions[:] = [

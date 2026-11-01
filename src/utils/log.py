@@ -7,7 +7,7 @@ from datetime import datetime
 
 
 class LogClass:
-    def __init__(self, source=None):
+    def __init__(self, source: str | None = None) -> None:
         self.logfile = os.path.join(
             os.path.dirname(sys.executable)
             if getattr(sys, "frozen", False)
@@ -20,7 +20,7 @@ class LogClass:
         else:
             self.log_source = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
-    def _write(self, msg):
+    def _write(self, msg: str) -> None:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         line = f"[{timestamp}] {msg}"
         print(line)
@@ -30,17 +30,17 @@ class LogClass:
         except:
             pass
 
-    def log(self, msg):
+    def log(self, msg: str) -> None:
         self._write(f"[annotation] [{self.log_source}] {msg}")
 
-    def info(self, msg):
+    def info(self, msg: str) -> None:
         self._write(f"[info] [{self.log_source}] {msg}")
 
-    def warn(self, msg):
+    def warn(self, msg: str) -> None:
         self._write(f"[warn] [{self.log_source}] {msg}")
 
-    def error(self, msg):
+    def error(self, msg: str) -> None:
         self._write(f"[error] [{self.log_source}] {msg}")
 
-    def _organize_log(self):
+    def _organize_log(self) -> None:
         pass

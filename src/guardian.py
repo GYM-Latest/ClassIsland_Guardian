@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 GYM_Latest
 
+from typing import Any
+
 try:
     import os
     import sys
@@ -15,7 +17,7 @@ try:
     from winerror import ERROR_ALREADY_EXISTS
 
     import core.exit_app
-    import core.scheduler
+    import core.scheduler_manager
     from utils.bcd import BcdClass
     from utils.database import Database
     from utils.exec import ExecClass
@@ -27,17 +29,20 @@ try:
 except Exception as e:
     import_error = e
 
+import_error: Exception | None
+
 # 互斥锁句柄
-_instance_mutex = None
+_instance_mutex: Any = None
 
 # 热重启次数记录
-hot_reboot_time = 0
+hot_reboot_time: int = 0
 # 热重启竞态检测标识
-is_reboot = False
+is_reboot: bool = False
+scheduler: Any
 
 
 # 检查并创建互斥锁
-def prevent_multiple_instances():
+def prevent_multiple_instances() -> None:
     """防止多实例启动，若已有实例则退出程序"""
     try:
         global _instance_mutex
@@ -50,7 +55,7 @@ def prevent_multiple_instances():
 
 
 # 热重启函数
-def hot_reboot():
+def hot_reboot() -> None:
     log = LogClass("Service.hot_reboot")
     exec = ExecClass(log)
     try:
@@ -73,7 +78,7 @@ def hot_reboot():
 
 
 # 守护进程主入口
-def main():
+def main() -> None:
     try:
         global scheduler, is_reboot
 
@@ -117,21 +122,8 @@ def main():
 
         log.info(f"ClassIsland Guardian 已启动 ~ | 版本：{VERSION} ({CODENAME})")
 
-        # 删除可能存在的标识符
-        # 删除更新标识符并调整启动顺序
-        if os.path.exists(os.path.join(exec.get_exe_path(), ".afterupdate")):
-            os.remove(os.path.join(exec.get_exe_path(), ".afterupdate"))
-            os.remove(
-                os.path.join(
-                    os.environ.get("SystemDrive", "C:") + "\\",
-                    "GuardianRecovery",
-                    ".rollback",
-                )
-            )
-            bcd.set_windows_bcd_start()
-
-        # 这里调用 core/scheduler.py
-        core.scheduler.register_tasks(scheduler, db)
+        # 注册守护任务
+        core.scheduler_manager.init_tasks(scheduler, db)
         scheduler.start()
         # 运行 Service.app_exit()
         core.exit_app.init(scheduler)

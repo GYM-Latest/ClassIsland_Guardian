@@ -13,7 +13,7 @@ exec = ExecClass(log)
 bcd = BcdClass(log)
 
 
-def main():
+def main() -> None:
     if not os.path.exists(os.path.join(exec.get_exe_path(), ".uninstall")):
         print("请在 config.exe 中触发卸载流程，而不是直接运行 uninstall.exe")
         print("按任意键退出...")

@@ -1,14 +1,19 @@
-from apscheduler.events import EVENT_JOB_ERROR
+from apscheduler.events import EVENT_JOB_ERROR, JobExecutionEvent
+from apscheduler.schedulers.background import BackgroundScheduler
 
+import os
 from core import tasks
+from utils.database import Database
 from utils.log import LogClass
 
 # 守护任务列表，停止守护时会停止这里的任务
-PROTECT_JOB_LIST = {"monitor_classisland", "detect_classisland_pending"}
+PROTECT_JOB_LIST = {"monitor_classisland_process", "check_classisland_issue"}
+scheduler: BackgroundScheduler
+db: Database
 
 
 # 调度器错误处理函数
-def task_error_handler(event):
+def task_error_handler(event: JobExecutionEvent) -> None:
     log = LogClass("Service.task_error_handler")
     try:
         log.error(
@@ -24,7 +29,7 @@ def task_error_handler(event):
         )
 
 
-def register_tasks(_scheduler, _db):
+def init_tasks(_scheduler: BackgroundScheduler, _db: Database) -> None:
     global scheduler, db
     scheduler = _scheduler
     db = _db
@@ -37,15 +42,23 @@ def register_tasks(_scheduler, _db):
     # 添加保护任务
     add_protect_job()
 
-    # 添加其他任务
-    # scheduler.add_job(
-    #     tasks.check_update,
-    #     "date",
-    #     id="check_update",
-    #     max_instances=1,
-    # )
+    # 添加检查更新任务
+    scheduler.add_job(
+        tasks.check_update,
+        "date",
+        id="check_update",
+        max_instances=1,
+    )
+    
+    # 添加更新后处理任务
+    scheduler.add_job(
+        tasks.after_update,
+        "date",
+        id="after_update",
+        max_instances=1,
+    )
 
-    # 测试用的UI任务
+    # UI图标任务
     scheduler.add_job(
         tasks.tray,
         "date",
@@ -54,7 +67,7 @@ def register_tasks(_scheduler, _db):
     )
 
 
-def is_guardian_jobs_running():
+def is_guardian_jobs_running() -> bool:
     """检查是否有守护任务正在执行"""
     for executor in scheduler._executors.values():
         for job_id in executor._instances:
@@ -63,7 +76,18 @@ def is_guardian_jobs_running():
     return False
 
 
-def add_protect_job():
+def is_job_running(job_id: str) -> bool:
+    """检查指定任务是否正在执行"""
+    if scheduler.get_job(job_id):
+        return True
+    for executor in scheduler._executors.values():
+        for this_job_id in executor._instances:
+            if this_job_id == job_id:
+                return True
+    return False
+
+
+def add_protect_job() -> None:
     """添加守护任务进调度器。"""
     scheduler.add_job(
         tasks.monitor_classisland_process,
@@ -81,7 +105,7 @@ def add_protect_job():
     )
 
 
-def remove_protect_job():
+def remove_protect_job() -> None:
     """移除守护任务出调度器。"""
     for job_id in PROTECT_JOB_LIST:
         if scheduler.get_job(job_id):

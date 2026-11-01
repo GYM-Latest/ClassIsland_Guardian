@@ -5,11 +5,13 @@
 # E722:   裸 except —— 守护/清理场景故意捕获一切（含 KeyboardInterrupt/SystemExit），
 #         兜底逻辑不能漏任何异常
 # G010: log模块是自己实现的，不是logging模块
+# DTZ006：时区警告，同上
 [lint]
 ignore = [
     "BLE001",
     "S110",
     "DTZ005",
     "E722",
-    "G010"
+    "G010",
+    "DTZ006"
 ]

@@ -1,4 +1,10 @@
+from typing import Any
+
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
+
+from utils.database import Database
+from utils.log import LogClass
+from utils.process import ProcessClass
 
 
 class UiBackend(QObject):
@@ -6,7 +12,7 @@ class UiBackend(QObject):
     showTransition = Signal()
     hideTransition = Signal()
 
-    def __init__(self, scheduler, db, log):
+    def __init__(self, scheduler: Any, db: Database, log: LogClass) -> None:
         super().__init__()
         self.scheduler = scheduler
         self.db = db
@@ -18,23 +24,23 @@ class UiBackend(QObject):
         self.timer.start(500)
 
     @Property("QVariantMap", notify=dataChanged)
-    def path(self):
+    def path(self) -> dict[str, Any]:
         return dict(self.db.path)
 
     @Property("QVariantMap", notify=dataChanged)
-    def state(self):
+    def state(self) -> dict[str, Any]:
         return dict(self.db.state)
 
     @Property("QVariantMap", notify=dataChanged)
-    def config(self):
+    def config(self) -> dict[str, Any]:
         return dict(self.db.config)
 
     @Property("QVariantMap", notify=dataChanged)
-    def meta(self):
+    def meta(self) -> dict[str, Any]:
         return dict(self.db.meta)
 
     @Slot(str, str, "QVariant")
-    def set_value(self, target, key, value):
+    def set_value(self, target: str, key: str, value: Any) -> None:
         match target:
             case "path":
                 self.db.path[key] = value
@@ -46,9 +52,10 @@ class UiBackend(QObject):
                 self.db.meta[key] = value
 
     @Slot()
-    def temp_stop_protection(self):
-        from core.scheduler import PROTECT_JOB_LIST
+    def temp_stop_protection(self) -> None:
+        from core.scheduler_manager import PROTECT_JOB_LIST
 
+        self.log.info("用户UI请求临时停止保护。")
         self.set_value("config", "protect_state", "tempstop")
         self.showTransition.emit()
         for job_id in PROTECT_JOB_LIST:
@@ -58,25 +65,42 @@ class UiBackend(QObject):
         self._wait_guardian_jobs_end()
 
     @Slot()
-    def stop_protection(self):
-        from core.scheduler import remove_protect_job
+    def stop_protection(self) -> None:
+        from core.scheduler_manager import remove_protect_job
 
+        self.log.info("用户UI请求停止保护。")
         self.set_value("config", "protect_state", "stop")
         remove_protect_job()
 
         self._wait_guardian_jobs_end()
 
     @Slot()
-    def resume_protection(self):
-        from core.scheduler import add_protect_job
+    def resume_protection(self) -> None:
+        from core.scheduler_manager import add_protect_job
 
+        self.log.info("用户UI请求恢复保护。")
         self.set_value("config", "protect_state", "running")
         add_protect_job()
 
     @Slot()
-    def check_update(self):
+    def restart_classisland(self) -> None:
+        from core.tasks import reboot_classisland
+
+        self.log.info("用户UI请求重启 ClassIsland 进程。")
+        process = ProcessClass(self.db, self.log)
+        self.scheduler.add_job(
+            reboot_classisland,
+            "date",
+            args=[process],
+            id="fixing_classisland",
+            max_instances=1,
+        )
+
+    @Slot()
+    def check_update(self) -> None:
         from core.tasks import check_update
 
+        self.log.info("用户UI请求检查更新。")
         self.scheduler.add_job(
             check_update,
             "date",
@@ -85,18 +109,19 @@ class UiBackend(QObject):
         )
 
     @Slot()
-    def update(self):
+    def update(self) -> None:
         from core.tasks import update
 
+        self.log.info("用户UI请求更新。")
         self.scheduler.add_job(
             update,
             "date",
-            id="check_update",
+            id="update",
             max_instances=1,
         )
 
-    def _wait_guardian_jobs_end(self):
-        from core.scheduler import is_guardian_jobs_running
+    def _wait_guardian_jobs_end(self) -> None:
+        from core.scheduler_manager import is_guardian_jobs_running
 
         if is_guardian_jobs_running():
             QTimer.singleShot(100, self._wait_guardian_jobs_end)

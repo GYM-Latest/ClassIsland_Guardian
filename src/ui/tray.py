@@ -1,12 +1,18 @@
-# src/ui/tray.py
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 GYM_Latest
+
 import os
+from typing import Any
 
 from lightpytray import LightPyTray
 
-_tray_instance = None
+from utils.database import Database
+from utils.log import LogClass
+
+_tray_instance: LightPyTray | None = None
 
 
-def start_tray(log, db, scheduler):
+def start_tray(log: LogClass, db: Database, scheduler: Any) -> LightPyTray:
     global _tray_instance
 
     # 打包时得改
@@ -15,7 +21,7 @@ def start_tray(log, db, scheduler):
     )
     icon_path = os.path.join(ROOT_DIR, "icon", "icon.ico")
 
-    def on_left_click():
+    def on_left_click() -> None:
         log.info("托盘图标被左键单击！")
         from core.tasks import main_window
 

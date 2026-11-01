@@ -28,13 +28,17 @@ bcd = BcdClass(log)
 
 
 class Config:
-    def __init__(self):
+    classisland_path: str | None
+    password: str
+    driver_protection: bool
+
+    def __init__(self) -> None:
         self.classisland_path = None
         self.password = ""
         self.driver_protection = False
 
     @staticmethod
-    def generate_install_configuration_file(name):
+    def generate_install_configuration_file(name: str) -> None:
         """生成安装配置文件（JSON）"""
         path = os.path.join(exec.get_exe_path(), name)
         data = {
@@ -47,7 +51,7 @@ class Config:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
     @staticmethod
-    def read_install_configuration_file(name):
+    def read_install_configuration_file(name: str) -> None:
         """读取安装配置文件（JSON）"""
         path = os.path.join(exec.get_exe_path(), name)
         with open(path, "r", encoding="utf-8") as f:
@@ -57,7 +61,7 @@ class Config:
         Config.driver_protection = data.get("driver_protection", False)
 
 
-def find_classisland():
+def find_classisland() -> str | None:
     """寻找 ClassIsland 的安装路径。 返回 ClassIsland 的安装路径(String)"""
     process_names = ["ClassIsland.Desktop.exe"]
     for proc in psutil.process_iter(["name", "exe"]):
@@ -68,7 +72,7 @@ def find_classisland():
     return None
 
 
-def prepare_install_drivers():
+def prepare_install_drivers() -> None:
     print("将在倒计时结束后开始安装 ~")
     for i in range(5, 0, -1):
         print(i, end=" ", flush=True)
@@ -93,8 +97,8 @@ def prepare_install_drivers():
     subprocess.run(["shutdown", "/r", "/t", "1"], check=False)
 
 
-def install():
-    def _copy_and_log(src, dst):
+def install() -> None:
+    def _copy_and_log(src: str, dst: str) -> None:
         print(f"正在安装：{dst}")
         shutil.copy2(src, dst)
 
@@ -301,7 +305,7 @@ def install():
     print("安装完成，重启后生效 ~")
 
 
-def configure():
+def configure() -> None:
     # 安装模式
     mode = "install"
 
@@ -404,8 +408,8 @@ def configure():
         prepare_install_drivers()
 
 
-def main():
-    def is_admin():
+def main() -> None:
+    def is_admin() -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
         except:

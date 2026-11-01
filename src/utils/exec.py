@@ -9,26 +9,32 @@ import time
 import winreg
 from ctypes import wintypes
 
+import win32con
+import win32process
+from pywintypes import HANDLEType as PyHANDLE
+
+from utils.log import LogClass
+
 
 class ExecClass:
-    def __init__(self, log):
+    def __init__(self, log: LogClass) -> None:
         self.log = log
 
     # 获取当前运行目录
-    def get_exe_path(self):
+    def get_exe_path(self) -> str:
         "返回当前程序运行的目录。"
-        if getattr(sys, "frozen", False):
-            return os.path.dirname(sys.executable)
+        if getattr(sys, "frozen", False) or "__compiled__" in globals():
+            return os.path.dirname(os.path.abspath(sys.executable))
         else:
-            return os.path.dirname(os.path.abspath(__file__))
+            return os.path.dirname(os.path.abspath(sys.argv[0]))
 
     # 获取当前程序进程名
-    def get_exe_name(self):
+    def get_exe_name(self) -> str:
         "返回当前程序进程名。"
         return os.path.basename(sys.argv[0])
 
     # 映像劫持清除
-    def remove_ifeo(self, name):
+    def remove_ifeo(self, name: str) -> bool:
         "检测并尝试清除指定项的映像劫持。 传入要启动文件的名称(string) 成功返回True，失败返回False"
         try:
             key = winreg.OpenKey(
@@ -56,18 +62,18 @@ class ExecClass:
             return False
 
     # 带映像劫持对抗的启动应用程序，并检查是否已启动
-    def start_and_check(self, path):
+    def start_and_check(self, path: str, token: PyHANDLE) -> bool:
         "带映像劫持对抗的启动指定程序，并检查是否已启动成功。 传入要启动文件的路径(string) 成功返回True，失败返回False"
-        if not self.start(path):
+        if not self.start(path, token):
             return False
-        for _ in range(0,50):
+        for _ in range(50):
             time.sleep(0.1)
             if self.get_process_by_path(path) >= 1:
                 return True
         return False
 
     # 带映像劫持对抗的启动应用程序
-    def start(self, path):
+    def start(self, path: str, token: PyHANDLE) -> bool:
         "带映像劫持对抗的启动指定程序。 传入要启动文件的目录(string) 成功返回True，失败返回False"
         name = os.path.basename(path)
         if not self.remove_ifeo(name):
@@ -75,9 +81,21 @@ class ExecClass:
 
         if os.path.exists(os.path.dirname(path)):
             try:
-                subprocess.Popen(
-                    [path],
-                    cwd=os.path.dirname(path),
+                startup_info = win32process.STARTUPINFO()
+                startup_info.dwFlags |= win32con.STARTF_USESHOWWINDOW
+                startup_info.wShowWindow = win32con.SW_SHOWNORMAL
+                startup_info.lpDesktop = "winsta0\\default"
+                win32process.CreateProcessAsUser(
+                    token,
+                    path,
+                    None,
+                    None,
+                    None,
+                    False,
+                    0,
+                    None,
+                    None,
+                    startup_info,
                 )
                 return True
             except Exception as e:
@@ -88,7 +106,7 @@ class ExecClass:
             return False
 
     # 结束指定进程
-    def kill_process(self, name):
+    def kill_process(self, name: str) -> bool:
         "结束指定进程。 传入要结束的进程名(string)。 成功返回True"
         import psutil
 
@@ -102,11 +120,11 @@ class ExecClass:
         return True
 
     # 清空控制台
-    def clear_terminal(self):
+    def clear_terminal(self) -> None:
         subprocess.run("cls", shell=True, check=False)
 
     # 标记为系统关键进程
-    def make_process_critical(self):
+    def make_process_critical(self) -> bool:
         """标记当前进程为系统关键进程。 成功返回 True (bool)， 失败返回 False (Bool)"""
         ntdll = ctypes.WinDLL("ntdll.dll")
         RtlSetProcessIsCritical = ntdll.RtlSetProcessIsCritical
@@ -126,7 +144,7 @@ class ExecClass:
             return False
 
     # 取消标记为系统关键进程
-    def unmake_process_critical(self):
+    def unmake_process_critical(self) -> bool:
         """取消标记当前进程为系统关键进程。 成功返回 True (bool)， 失败返回 False (Bool)"""
         ntdll = ctypes.WinDLL("ntdll.dll")
         RtlSetProcessIsCritical = ntdll.RtlSetProcessIsCritical
@@ -146,7 +164,7 @@ class ExecClass:
             return False
 
     # 检查指定进程数量
-    def get_process_by_path(self, path: str):
+    def get_process_by_path(self, path: str) -> int:
         "通过进程的可执行文件路径检查进程数量，返回匹配路径的进程数量。"
         import psutil
 
@@ -160,7 +178,7 @@ class ExecClass:
         return count
 
     # 设置计划任务
-    def set_schtasks(self, name, path):
+    def set_schtasks(self, name: str, path: str) -> bool:
         "为指定的项创建计划任务。 传入任务名(string)与可执行文件路径(string)，成功返回 True ，失败返回 False"
         try:
             subprocess.run(
@@ -186,7 +204,7 @@ class ExecClass:
             return False
 
     # 移除计划任务
-    def unset_schtasks(self, name):
+    def unset_schtasks(self, name: str) -> bool:
         "为指定的项移除计划任务。 传入任务名称(String)，成功返回 True ，失败返回 False"
         try:
             subprocess.run(

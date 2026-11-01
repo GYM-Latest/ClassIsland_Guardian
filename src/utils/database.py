@@ -3,26 +3,27 @@
 
 import sqlite3
 import time
+from typing import Any, Literal
 
 from utils.version import VERSION
 
 
 # 封装数据库方法
 class Database:
-    def __init__(self, database_path):
+    def __init__(self, database_path: str) -> None:
         self.database_path = database_path
 
         # 路径表
-        self.path = {}
+        self.path: dict[str, Any] = {}
         # 设置表
-        self.config = {}
+        self.config: dict[str, Any] = {}
         # 运行时状态表
-        self.state = {}
+        self.state: dict[str, Any] = {}
         # 元数据表
-        self.meta = {}
+        self.meta: dict[str, Any] = {}
 
     # 数据库格式转换
-    def _format_database(self):
+    def _format_database(self) -> None:
         self.path["classisland_process_name"] = (
             self.path.get("classisland_process_name") or "ClassIsland.Desktop.exe"
         )
@@ -87,7 +88,7 @@ class Database:
         self.meta["device_id"] = self.meta.get("device_id") or ""
 
     # 读取数据库，成功返回True，失败返回False
-    def read_database(self, log):
+    def read_database(self, log: Any) -> bool:
         try:
             with sqlite3.connect(self.database_path) as conn:
                 cursor = conn.cursor()
@@ -111,7 +112,7 @@ class Database:
             return False
 
     # 创建数据库，成功返回数据库路径，失败返回False
-    def new_database(self, log):
+    def new_database(self, log: Any) -> str | Literal[False]:
         try:
             with sqlite3.connect(self.database_path) as conn:
                 cursor = conn.cursor()
@@ -147,7 +148,7 @@ class Database:
             return False
 
     # 保存数据库
-    def save_database(self, log):
+    def save_database(self, log: Any) -> bool:
         try:
             with sqlite3.connect(self.database_path) as conn:
                 cursor = conn.cursor()
@@ -172,7 +173,7 @@ class Database:
             return False
 
     # 读取v0.4.x及以下的数据库，成功返回True，失败返回False
-    def read_v0_4_x_database(self, log):
+    def read_v0_4_x_database(self, log: Any) -> bool:
         """读取 v0.4.x 及以下的数据库，成功返回 True，失败返回 False。"""
         try:
             with sqlite3.connect(self.database_path) as conn:

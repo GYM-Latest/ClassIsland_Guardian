@@ -5,13 +5,16 @@ import os
 import shutil
 import zipfile
 from datetime import datetime
+from typing import Literal
 
+from utils.database import Database
 from utils.exec import ExecClass
+from utils.log import LogClass
 from utils.process import ProcessClass
 
 
 class SnapshotClass:
-    def __init__(self, db, log):
+    def __init__(self, db: Database, log: LogClass) -> None:
         self.db = db
         self.log = log
         self.exec = ExecClass(log)
@@ -22,35 +25,48 @@ class SnapshotClass:
             "data",
             "snapshot",
         )
-        self.Process = ProcessClass(db, log)
+        self.process = ProcessClass(db, log)
         self.classisland_path = db.path.get("classisland_path")
 
-    def _zip_dir(self, src, dst):
+    def _zip_dir(self, src: str, dst: str) -> bool:
         "压缩指定文件夹文件到指定路径。 成功返回 True ，失败返回 False"
         try:
             with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as zf:
                 for root, _, files in os.walk(src):
                     for file in files:
                         file_path = os.path.join(root, file)
-                        arcname = os.path.relpath(file_path, self.classisland_path)
+                        arcname = os.path.relpath(file_path, src)
                         zf.write(file_path, arcname)
         except Exception as e:
             self.log.error(f"压缩文件时出错，错误是：{e}")
         return True
 
-    def list_snapshot(self):
+    def list_snapshot(self) -> list[list[str | int]] | Literal[False]:
         "列出所有可用的快照。 成功返回列表，失败返回False"
         try:
-            filelist = os.listdir(self.snapshot_path)
-            filelist.sort(reverse=True)
-            return filelist
+            list = []
+            with os.scandir(self.snapshot_path) as entries:
+                for entry in entries:
+                    if entry.is_file():
+                        stat = entry.stat()
+                        list.append(
+                            [
+                                entry.name,
+                                datetime.fromtimestamp(stat.st_birthtime).strftime(
+                                    "%Y-%m-%d %H:%M:%S"
+                                ),
+                                stat.st_size,
+                            ]
+                        )
+            list = sorted(list, key=lambda x: x[1], reverse=True)
+            return list
         except Exception as e:
             self.log.error(f"列出快照时出错，错误为：{e}")
             return False
 
-    def restore_snapshot(self, name):
+    def restore_snapshot(self, name: str) -> bool:
         "恢复到指定的快照。 传入要恢复快照的文件名(string) 成功返回True，失败返回False"
-        self.exec.kill_process(self.db.path.get("classisland_process_name"))
+        self.process.kill_classisland()
         if os.path.exists(os.path.join(self.snapshot_path, name)):
             try:
                 try:
@@ -69,11 +85,8 @@ class SnapshotClass:
             self.log.error("恢复时出错，指定的快照文件不存在")
             return False
 
-    def create_snapshot(self, name=None):
+    def create_snapshot(self, name: str | None = None) -> str | Literal[False]:
         "创建一个快照。 可选传入一个备注信息(String)。成功返回快照名称，失败返回False。"
-        if not self.Process.kill_classisland():
-            return False
-
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         if name:
             zip_name = f"snapshot_{timestamp}_({name}).zip"
@@ -100,7 +113,7 @@ class SnapshotClass:
             self.log.error(f"压缩文件时出错，错误是：{e}")
             return False
 
-    def remove_snapshot(self, name):
+    def remove_snapshot(self, name: str) -> bool:
         "移除指定的快照。 传入要删除的快照名称(String) 成功返回True，失败返回False"
         try:
             os.remove(os.path.join(self.snapshot_path, name))

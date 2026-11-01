@@ -7,6 +7,7 @@ import string
 import subprocess
 import sys
 import time
+from typing import Literal
 
 from utils.bcd import BcdClass
 from utils.exec import ExecClass
@@ -16,9 +17,13 @@ from utils.version import CODENAME, VERSION
 log = LogClass("recovery")
 exec = ExecClass(log)
 bcd = BcdClass(log)
+guardianrecovery_path: str | Literal[False]
+guardianrecovery_device: str
+guardian_path: str
+drivers_path: str
 
 
-def _find_guardianrecovery_path():
+def _find_guardianrecovery_path() -> str | Literal[False]:
     """返回 GuardianRecovery 目录的路径(String)。如果未找到，返回False。"""
     for drive in string.ascii_uppercase:
         root = f"{drive}:\\"
@@ -28,12 +33,12 @@ def _find_guardianrecovery_path():
     return False
 
 
-def _copy_and_log(src, dst, verb="复制"):
+def _copy_and_log(src: str, dst: str, verb: str = "复制") -> None:
     log.info(f"正在{verb}：{dst}")
     shutil.copy2(src, dst)
 
 
-def _backup_guardian_log():
+def _backup_guardian_log() -> None:
     """备份Guardian主程序日志到GuardianRecovery目录。"""
     try:
         try:
@@ -49,7 +54,7 @@ def _backup_guardian_log():
         log.warn(f"备份日志文件失败，错误为：{e}")
 
 
-def _restore_guardian_log():
+def _restore_guardian_log() -> None:
     """从GuardianRecovery目录恢复Guardian主程序日志。"""
     try:
         try:
@@ -66,14 +71,14 @@ def _restore_guardian_log():
         log.warn(f"恢复日志文件失败，错误为：{e}")
 
 
-def _copy_drivers(src, dst):
+def _copy_drivers(src: str, dst: str) -> None:
     """在 src 和 dst 之间复制所有内核驱动文件。"""
     shutil.copy2(os.path.join(src, "file.sys"), os.path.join(dst, "file.sys"))
     shutil.copy2(os.path.join(src, "process.sys"), os.path.join(dst, "process.sys"))
     shutil.copy2(os.path.join(src, "registry.sys"), os.path.join(dst, "registry.sys"))
 
 
-def _restore_guardian_data():
+def _restore_guardian_data() -> None:
     """从GuardianRecovery目录恢复Guardian数据文件。"""
     shutil.copytree(
         os.path.join(guardianrecovery_path, "data"),
@@ -83,7 +88,7 @@ def _restore_guardian_data():
     )
 
 
-def fix_guardian():
+def fix_guardian() -> None:
     """在预启动修复环境中修复Guardian。"""
     print("正在进行系统修复。修复完成后会自动进入系统，请安心等待 ~\n")
     try:
@@ -115,7 +120,7 @@ def fix_guardian():
         log.error(f"修复失败，错误为：{e}")
 
 
-def update_guardian():
+def update_guardian() -> None:
     """在预启动修复环境下升级Guardian主程序"""
     try:
         # 备份Guardian日志
@@ -178,7 +183,7 @@ def update_guardian():
         log.error(f"升级失败，错误为：{e}")
 
 
-def rollback_guardian():
+def rollback_guardian() -> None:
     """在预启动修复环境下回退Guardian主程序 (需要至少更新过一次)"""
     try:
         # 备份Guardian日志
@@ -212,7 +217,7 @@ def rollback_guardian():
         log.error(f"回退失败，错误为：{e}")
 
 
-def main():
+def main() -> None:
     global guardian_path
     global guardianrecovery_path
     global guardianrecovery_device

@@ -5,13 +5,16 @@ import os
 import re
 import shutil
 import subprocess
+from typing import Literal
+
+from utils.log import LogClass
 
 
 class BcdClass:
-    def __init__(self, log):
+    def __init__(self, log: LogClass) -> None:
         self.log = log
 
-    def _find_recovery_guid(self):
+    def _find_recovery_guid(self) -> str | Literal[False]:
         """查找 ClassIsland Guardian Recovery BCD启动项对应的 GUID。 成功返回GUID(String)，失败返回False"""
         try:
             result = subprocess.run(
@@ -32,7 +35,7 @@ class BcdClass:
             self.log.error(f"未能找到启动项GUID，错误是：{e}")
             return False
 
-    def _find_windows_guid(self):
+    def _find_windows_guid(self) -> str | Literal[False]:
         """查找 Windows BCD启动项对应的 GUID。 成功返回GUID(String)，失败返回False"""
         try:
             result = subprocess.run(
@@ -59,7 +62,7 @@ class BcdClass:
             self.log.error(f"未能找到 Windows 启动项 GUID，错误是：{e}")
             return False
 
-    def _find_boot_sdi(self, system_device):
+    def _find_boot_sdi(self, system_device: str) -> str | Literal[False]:
         """在系统中查找 boot.sdi 文件。 成功返回路径(String)，失败返回 False"""
         candidates = [
             f"{system_device}\\Windows\\Boot\\DVD\\PCAT\\boot.sdi",
@@ -80,7 +83,7 @@ class BcdClass:
             pass
         return False
 
-    def create_recovery_bcd(self):
+    def create_recovery_bcd(self) -> str | Literal[False]:
         """为 GuardianRecovery\\recovery.wim 创建 BCD 启动项。 成功返回对应启动项的GUID(String)，失败返回 False"""
         try:
             if self._find_recovery_guid():
@@ -205,7 +208,7 @@ class BcdClass:
             self.log.error(f"创建 BCD启动项 失败，错误是：{e}")
             return False
 
-    def set_recovery_bcd_startonce(self):
+    def set_recovery_bcd_startonce(self) -> bool:
         """设置下次启动从 Recovery 环境启动。 成功返回 True ，失败返回 False"""
         try:
             recovery_guid = self._find_recovery_guid()
@@ -217,7 +220,7 @@ class BcdClass:
             self.log.error(f"设置单次启动项时失败，错误是：{e}")
             return False
 
-    def set_recovery_bcd_start(self):
+    def set_recovery_bcd_start(self) -> bool:
         """设置默认启动项为 Recovery 环境。 成功返回 True ，失败返回 False"""
         try:
             recovery_guid = self._find_recovery_guid()
@@ -229,7 +232,7 @@ class BcdClass:
             self.log.error(f"设置默认启动项时失败，错误是：{e}")
             return False
 
-    def set_windows_bcd_startonce(self):
+    def set_windows_bcd_startonce(self) -> bool:
         """设置下次启动从 Windows 环境启动。 成功返回 True ，失败返回 False"""
         try:
             windows_guid = self._find_windows_guid()
@@ -241,7 +244,7 @@ class BcdClass:
             self.log.error(f"设置单次启动项时失败，错误是：{e}")
             return False
 
-    def set_windows_bcd_start(self):
+    def set_windows_bcd_start(self) -> bool:
         """设置默认启动项为 Windows 环境。 成功返回 True ，失败返回 False"""
         try:
             windows_guid = self._find_windows_guid()
@@ -253,7 +256,7 @@ class BcdClass:
             self.log.error(f"设置默认启动项时失败，错误是：{e}")
             return False
 
-    def remove_recovery_bcd(self):
+    def remove_recovery_bcd(self) -> bool:
         """为 GuardianRecovery\recovery.wim 移除 BCD 启动项。 成功返回 True ，失败返回 False"""
         try:
             recovery_guid = self._find_recovery_guid()
@@ -271,7 +274,7 @@ class BcdClass:
             self.log.error(f"移除BCD启动项时出错，错误是：{e}")
             return False
 
-    def set_testmode(self):
+    def set_testmode(self) -> bool:
         "开启测试模式。 成功返回 True ，失败返回 False 。"
         try:
             subprocess.run(["bcdedit", "/set", "testsigning", "on"], check=True)

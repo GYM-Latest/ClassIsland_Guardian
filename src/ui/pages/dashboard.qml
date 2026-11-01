@@ -63,7 +63,7 @@ FluentPage {
             iconName: "ic_fluent_arrow_sync_20_regular"
             title: qsTr("重启 ClassIsland")
             description: qsTr("强制重启 ClassIsland 进程，可用于卡死恢复")
-            onClicked: backend.restart_ci()
+            onClicked: backend.restart_classisland()
         }
     }
 
