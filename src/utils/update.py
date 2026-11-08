@@ -127,6 +127,9 @@ class UpdateClass:
                 os.makedirs(update_path, exist_ok=True)
                 with zipfile.ZipFile(temp_zip_path, "r") as zf:
                     zf.extractall(update_path)
+                # 更新预启动修复环境
+                shutil.copy(os.path.join(guardianrecovery_path, "recovery", "recovery.wim"), os.path.join(guardianrecovery_path, "recovery.wim"))
+                shutil.rmtree(os.path.join(guardianrecovery_path, "recovery"))
             except Exception as e:
                 self.db.state["update_status"] = "error"
                 self.log.error(f"解压失败: {e}")
