@@ -76,6 +76,7 @@ def check_classisland_issue() -> None:
     process = ProcessClass(db, log)
     if (
         db.config.get("auto_restart_frozen_ci")
+        and process.get_classisland_status()
         and process.is_classisland_frozen()
         and not scheduler.get_job("fixing_classisland")
     ):

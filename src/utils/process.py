@@ -117,12 +117,15 @@ class ProcessClass:
         "检查Classisland进程数量。 返回Classisland进程数量(int)"
         classisland_process_name = self.db.path.get("classisland_process_name").lower()
         count = 0
-        for proc in psutil.process_iter(["name", "exe"]):
-            if (
-                proc.info.get("name")
-                and proc.info["name"].lower() == classisland_process_name
-            ) and self._is_real_classisland(proc.info.get("exe")):
-                count += 1
+        for proc in psutil.process_iter(["name"]):
+            try:
+                if (
+                    proc.info.get("name")
+                    and proc.info["name"].lower() == classisland_process_name
+                ) and self._is_real_classisland(proc.exe()):
+                    count += 1
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
         return count
 
     # 检查classisland是否崩溃并返回
@@ -373,18 +376,18 @@ class ProcessClass:
     def kill_non_install_classisland(self) -> None:
         "尝试查杀不在安装目录下的 ClassIsland 。"
         classisland_process_name = self.db.path.get("classisland_process_name").lower()
-        for proc in psutil.process_iter(["name", "exe"]):
-            if (
-                proc.info.get("name")
-                and proc.info["name"].lower() == classisland_process_name
-            ) and not self._is_real_classisland(proc.info.get("exe")):
-                try:
+        for proc in psutil.process_iter(["name"]):
+            try:
+                if (
+                    proc.info.get("name")
+                    and proc.info["name"].lower() == classisland_process_name
+                ) and not self._is_real_classisland(proc.exe()):
                     proc.kill()
                     self.log.info(
                         f"已经成功清除非安装目录下的 ClassIsland 实例：{proc.info.get('exe')}"
                     )
-                except Exception as e:
-                    self.log.warn(f"清除伪造进程时失败，错误是：{e}")
+            except Exception as e:
+                self.log.warn(f"清除伪造进程时失败，错误是：{e}")
 
     # 查杀ClassIsland的多开实例
     def kill_multi_ci(self) -> None:
