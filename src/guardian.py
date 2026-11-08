@@ -118,7 +118,8 @@ def main() -> None:
 
         # 按照配置标记关键进程
         if db.config.get("critical_process"):
-            exec.make_process_critical()
+            # exec.make_process_critical()
+            print("关键进程标记已启用，但由于调试需要，暂时无法在此环境下启用。")
 
         log.info(f"ClassIsland Guardian 已启动 ~ | 版本：{VERSION} ({CODENAME})")
 
