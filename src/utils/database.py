@@ -4,23 +4,45 @@
 import sqlite3
 import time
 from typing import Any, Literal
+import threading
 
 from utils.version import VERSION
 
+# 安全字典
+class SafeDict:
+    def __init__(self) -> None:
+        self._dict: dict[str, Any] = {}
+        self._lock = threading.RLock()
 
+    def __getitem__(self, key: str) -> Any:
+        with self._lock:
+            return self._dict[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        with self._lock:
+            self._dict[key] = value
+
+    def get(self, key: str, default: Any = None) -> Any:
+        with self._lock:
+            return self._dict.get(key, default)
+
+    def copy(self) -> dict[str, Any]:
+        with self._lock:
+            return self._dict.copy()
+        
 # 封装数据库方法
 class Database:
     def __init__(self, database_path: str) -> None:
         self.database_path = database_path
 
         # 路径表
-        self.path: dict[str, Any] = {}
+        self.path: SafeDict = SafeDict()
         # 设置表
-        self.config: dict[str, Any] = {}
+        self.config: SafeDict = SafeDict()
         # 运行时状态表
-        self.state: dict[str, Any] = {}
+        self.state: SafeDict = SafeDict()
         # 元数据表
-        self.meta: dict[str, Any] = {}
+        self.meta: SafeDict = SafeDict()
 
     # 数据库格式转换
     def _format_database(self) -> None:
@@ -154,9 +176,9 @@ class Database:
                 cursor = conn.cursor()
 
                 for table, data in [
-                    ("paths", self.path),
-                    ("config", self.config),
-                    ("meta", self.meta),
+                    ("paths", self.path.copy()),
+                    ("config", self.config.copy()),
+                    ("meta", self.meta.copy()),
                 ]:
                     for key, value in data.items():
                         # 不保存 classisland_process_name 防止逃逸启动脏名称污染配置
@@ -164,7 +186,7 @@ class Database:
                             continue
                         cursor.execute(
                             f"INSERT OR REPLACE INTO {table} (key, value) VALUES (?, ?)",
-                            (key, str(value)),
+                            (key, str(value).lower()),
                         )
                 conn.commit()
                 return True

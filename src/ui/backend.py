@@ -25,19 +25,19 @@ class UiBackend(QObject):
 
     @Property("QVariantMap", notify=dataChanged)
     def path(self) -> dict[str, Any]:
-        return dict(self.db.path)
+        return dict(self.db.path.copy())
 
     @Property("QVariantMap", notify=dataChanged)
     def state(self) -> dict[str, Any]:
-        return dict(self.db.state)
+        return dict(self.db.state.copy())
 
     @Property("QVariantMap", notify=dataChanged)
     def config(self) -> dict[str, Any]:
-        return dict(self.db.config)
+        return dict(self.db.config.copy())
 
     @Property("QVariantMap", notify=dataChanged)
     def meta(self) -> dict[str, Any]:
-        return dict(self.db.meta)
+        return dict(self.db.meta.copy())
 
     @Slot(str, str, "QVariant")
     def set_value(self, target: str, key: str, value: Any) -> None:
