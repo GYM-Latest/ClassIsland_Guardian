@@ -92,14 +92,14 @@ def add_protect_job() -> None:
     scheduler.add_job(
         tasks.monitor_classisland_process,
         "interval",
-        seconds=5,
+        seconds=1,
         id="monitor_classisland_process",
         max_instances=1,
     )
     scheduler.add_job(
         tasks.check_classisland_issue,
         "interval",
-        seconds=30,
+        seconds=5,
         id="check_classisland_issue",
         max_instances=1,
     )
