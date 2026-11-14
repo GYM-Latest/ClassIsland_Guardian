@@ -4,6 +4,8 @@
 import os
 import sys
 from datetime import datetime
+import win32evtlogutil
+import win32evtlog
 
 
 class LogClass:
@@ -30,6 +32,17 @@ class LogClass:
         except:
             pass
 
+    def _write_event_log(self, msg: str, event_type: int) -> None:
+        try:
+            win32evtlogutil.ReportEvent(
+                "ClassIslandGuardian",
+                0,
+                eventType=event_type,
+                strings=[f"[{self.log_source}] {msg}"],
+            )
+        except Exception:
+            pass
+
     def log(self, msg: str) -> None:
         self._write(f"[annotation] [{self.log_source}] {msg}")
 
@@ -38,9 +51,11 @@ class LogClass:
 
     def warn(self, msg: str) -> None:
         self._write(f"[warn] [{self.log_source}] {msg}")
+        self._write_event_log(msg, win32evtlog.EVENTLOG_WARNING_TYPE)
 
     def error(self, msg: str) -> None:
         self._write(f"[error] [{self.log_source}] {msg}")
+        self._write_event_log(msg, win32evtlog.EVENTLOG_ERROR_TYPE)
 
     def _organize_log(self) -> None:
         pass
