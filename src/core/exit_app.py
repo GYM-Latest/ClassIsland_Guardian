@@ -14,6 +14,7 @@ from apscheduler.schedulers.base import STATE_STOPPED
 
 from utils.exec import ExecClass
 from utils.log import LogClass
+from utils.database import Database
 
 log = LogClass("Service.exit_app")
 exec = ExecClass(log)
@@ -29,8 +30,8 @@ RETURN_CTRL_CLOSE_EVENT = -1073741510
 RETURN_CODE_WM_CLOSE = -1073741510
 RETURN_CODE_WM_ENDSESSION = -1073741510
 
-# 由主脚本在创建调度器后注入：utils.win_graceful_shutdown.scheduler = scheduler
 scheduler: Any = None
+db: Database | None = None
 
 EXIT_HANDLERS_RUNNING = False
 EXIT_REASON: int | None = None
@@ -64,8 +65,13 @@ def window_thread() -> None:
             log.info("系统正在关闭，Guardian正在退出...")
             if scheduler is not None and scheduler.state != STATE_STOPPED:
                 scheduler.shutdown(False)
+            
             exec.remove_ifeo("guardian.exe")
             exec.remove_ifeo("launcher.exe")
+
+            if db is not None:
+                db.save_database(log)
+                
             os._exit(0)
 
         if message == win32con.WM_QUERYENDSESSION:
@@ -102,8 +108,9 @@ def window_thread() -> None:
     # print(hwnd)
     win32gui.PumpMessages()  # blocks until PostQuitMessage() is called
 
-def init(_scheduler: Any) -> None:
-    global scheduler
+def init(_scheduler: Any, _db: Database | None) -> None:
+    global scheduler, db
     scheduler = _scheduler
+    db = _db
     window_thread()
 

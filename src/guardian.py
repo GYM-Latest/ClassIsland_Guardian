@@ -127,7 +127,7 @@ def main() -> None:
         core.scheduler_manager.init_tasks(scheduler, db)
         scheduler.start()
         # 运行 Service.app_exit()
-        core.exit_app.init(scheduler)
+        core.exit_app.init(scheduler,db)
 
     except Exception as e:
         log = LogClass("Service.hot_reboot")
