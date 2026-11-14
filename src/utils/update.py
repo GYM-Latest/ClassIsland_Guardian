@@ -3,7 +3,7 @@
 
 import os
 import shutil
-import zipfile
+import pigzpp
 from typing import Any, Literal
 
 import requests
@@ -125,7 +125,7 @@ class UpdateClass:
             update_path = os.path.join(guardianrecovery_path, "update")
             try:
                 os.makedirs(update_path, exist_ok=True)
-                with zipfile.ZipFile(temp_zip_path, "r") as zf:
+                with pigzpp.ZipFile(temp_zip_path, "r") as zf:
                     zf.extractall(update_path)
                 # 更新预启动修复环境
                 shutil.copy(os.path.join(guardianrecovery_path, "recovery", "recovery.wim"), os.path.join(guardianrecovery_path, "recovery.wim"))

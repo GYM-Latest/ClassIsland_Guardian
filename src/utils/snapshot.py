@@ -3,7 +3,7 @@
 
 import os
 import shutil
-import zipfile
+import pigzpp
 from datetime import datetime
 from typing import Literal
 
@@ -31,15 +31,16 @@ class SnapshotClass:
     def _zip_dir(self, src: str, dst: str) -> bool:
         "压缩指定文件夹文件到指定路径。 成功返回 True ，失败返回 False"
         try:
-            with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as zf:
+            with pigzpp.ZipFile(dst, "w", pigzpp.ZIP_DEFLATED) as zf:
                 for root, _, files in os.walk(src):
                     for file in files:
                         file_path = os.path.join(root, file)
                         arcname = os.path.relpath(file_path, src)
                         zf.write(file_path, arcname)
+            return True
         except Exception as e:
             self.log.error(f"压缩文件时出错，错误是：{e}")
-        return True
+            return False
 
     def list_snapshot(self) -> list[list[str | int]] | Literal[False]:
         "列出所有可用的快照。 成功返回列表，失败返回False"
@@ -74,7 +75,7 @@ class SnapshotClass:
                 except:
                     pass
                 os.mkdir(self.classisland_path)
-                with zipfile.ZipFile(os.path.join(self.snapshot_path, name), "r") as zf:
+                with pigzpp.ZipFile(os.path.join(self.snapshot_path, name), "r") as zf:
                     zf.extractall(path=self.classisland_path)
                     self.log.info(f"成功恢复到指定快照：{name}")
                     return True
