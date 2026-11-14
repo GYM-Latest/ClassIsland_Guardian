@@ -55,46 +55,60 @@ class Database:
 
         self.config["protect_state"] = self.config.get("protect_state") or "running"
         self.config["kill_non_install_ci"] = (
-            self.config.get("kill_non_install_ci") == "true"
+            str(self.config.get("kill_non_install_ci")).lower() == "true"
         )
-        self.config["kill_multi_ci"] = self.config.get("kill_multi_ci") == "true"
+        self.config["kill_multi_ci"] = (
+            str(self.config.get("kill_multi_ci")).lower() == "true"
+        )
         self.config["launch_ci_as_system"] = (
-            self.config.get("launch_ci_as_system") == "true"
+            str(self.config.get("launch_ci_as_system")).lower() == "true"
         )
         self.config["launch_ci_as_uiaccess"] = (
-            self.config.get("launch_ci_as_uiaccess") == "true"
+            str(self.config.get("launch_ci_as_uiaccess")).lower() == "true"
         )
         self.config["auto_restart_frozen_ci"] = (
-            self.config.get("auto_restart_frozen_ci") != "false"
+            str(self.config.get("auto_restart_frozen_ci")).lower() != "false"
         )
-        self.config["escape_launch_ci"] = self.config.get("escape_launch_ci") != "false"
+        self.config["escape_launch_ci"] = (
+            str(self.config.get("escape_launch_ci")).lower() != "false"
+        )
         self.config["rollback_before_launch"] = (
-            self.config.get("rollback_before_launch") == "true"
+            str(self.config.get("rollback_before_launch")).lower() == "true"
         )
-        self.config["rollback_on_fail"] = self.config.get("rollback_on_fail") != "false"
+        self.config["rollback_on_fail"] = (
+            str(self.config.get("rollback_on_fail")).lower() != "false"
+        )
         self.config["rollback_on_crash"] = (
-            self.config.get("rollback_on_crash") != "false"
+            str(self.config.get("rollback_on_crash")).lower() != "false"
         )
         self.config["auto_cleanup_snapshot"] = (
-            self.config.get("auto_cleanup_snapshot") != "false"
+            str(self.config.get("auto_cleanup_snapshot")).lower() != "false"
         )
         self.config["max_snapshot_count"] = int(
             self.config.get("max_snapshot_count") or 5
         )
         self.config["auto_install_dotnet"] = (
-            self.config.get("auto_install_dotnet") == "true"
+            str(self.config.get("auto_install_dotnet")).lower() == "true"
         )
-        self.config["cig_professional"] = self.config.get("cig_professional") == "true"
-        self.config["critical_process"] = self.config.get("critical_process") != "false"
+        self.config["cig_professional"] = (
+            str(self.config.get("cig_professional")).lower() == "true"
+        )
+        self.config["critical_process"] = (
+            str(self.config.get("critical_process")).lower() != "false"
+        )
         self.config["window_top_mode"] = (
             self.config.get("window_top_mode") or "uiaccess"
         )
         self.config["auto_download_update"] = (
-            self.config.get("auto_download_update") != "false"
+            str(self.config.get("auto_download_update")).lower() != "false"
         )
         self.config["update_channel"] = self.config.get("update_channel") or "stable"
-        self.config["tray_icon"] = self.config.get("tray_icon") != "false"
-        self.config["notification"] = self.config.get("notification") != "false"
+        self.config["tray_icon"] = (
+            str(self.config.get("tray_icon")).lower() != "false"
+        )
+        self.config["notification"] = (
+            str(self.config.get("notification")).lower() != "false"
+        )
         self.config["task_error_mode"] = (
             self.config.get("task_error_mode") or "silent_disable"
         )
@@ -153,9 +167,9 @@ class Database:
                     );
                             """)
                 for table, data in [
-                    ("paths", self.path),
-                    ("config", self.config),
-                    ("meta", self.meta),
+                    ("paths", self.path.copy()),
+                    ("config", self.config.copy()),
+                    ("meta", self.meta.copy()),
                 ]:
                     for key, value in data.items():
                         cursor.execute(
@@ -186,7 +200,7 @@ class Database:
                             continue
                         cursor.execute(
                             f"INSERT OR REPLACE INTO {table} (key, value) VALUES (?, ?)",
-                            (key, str(value).lower()),
+                            (key, str(value)),
                         )
                 conn.commit()
                 return True
