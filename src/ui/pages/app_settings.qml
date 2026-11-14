@@ -44,7 +44,7 @@ FluentPage {
             model: [
                 { text: "不置顶", value: "none" },
                 { text: "UIAccess", value: "uiaccess" },
-                { text: "安全桌面", value: "secure_desktop" },
+                { text: "Secure Desktop", value: "secure_desktop" },
             ]
             textRole: "text"
             valueRole: "value"
