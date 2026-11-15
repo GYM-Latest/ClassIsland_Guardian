@@ -3,7 +3,7 @@
 
 import os
 import shutil
-import pigzpp
+import zipfile
 from datetime import datetime
 from typing import Literal
 
@@ -31,12 +31,16 @@ class SnapshotClass:
     def _zip_dir(self, src: str, dst: str) -> bool:
         "压缩指定文件夹文件到指定路径。 成功返回 True ，失败返回 False"
         try:
-            with pigzpp.ZipFile(dst, "w", pigzpp.ZIP_DEFLATED) as zf:
+            with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as zf:
                 for root, _, files in os.walk(src):
                     for file in files:
                         file_path = os.path.join(root, file)
                         arcname = os.path.relpath(file_path, src)
-                        zf.write(file_path, arcname)
+                        try:
+                            zf.write(file_path, arcname)
+                        except Exception as e:
+                            self.log.warn(f"压缩文件 {file_path} 时出错，错误是：{e}")
+                        self.db.state["snapshot_current"] += 1
             return True
         except Exception as e:
             self.log.error(f"压缩文件时出错，错误是：{e}")
@@ -75,7 +79,7 @@ class SnapshotClass:
                 except:
                     pass
                 os.mkdir(self.classisland_path)
-                with pigzpp.ZipFile(os.path.join(self.snapshot_path, name), "r") as zf:
+                with zipfile.ZipFile(os.path.join(self.snapshot_path, name), "r") as zf:
                     zf.extractall(path=self.classisland_path)
                     self.log.info(f"成功恢复到指定快照：{name}")
                     return True
@@ -86,15 +90,18 @@ class SnapshotClass:
             self.log.error("恢复时出错，指定的快照文件不存在")
             return False
 
-    def create_snapshot(self, name: str | None = None) -> str | Literal[False]:
+    def create_snapshot(self, remark: str | None = None) -> str | Literal[False]:
         "创建一个快照。 可选传入一个备注信息(String)。成功返回快照名称，失败返回False。"
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        if name:
-            zip_name = f"snapshot_{timestamp}_({name}).zip"
+        if remark:
+            zip_name = f"snapshot_{timestamp}_({remark}).zip"
         else:
             zip_name = f"snapshot_{timestamp}.zip"
 
         try:
+            snapshot_total = sum(len(files) for _, _, files in os.walk(self.classisland_path))
+            self.db.state["snapshot_total"] = snapshot_total*2 # 压缩两次
+            self.db.state["snapshot_current"] = 0
             if os.path.exists(self.classisland_path):
                 os.makedirs(self.snapshot_path, exist_ok=True)
                 if not self._zip_dir(

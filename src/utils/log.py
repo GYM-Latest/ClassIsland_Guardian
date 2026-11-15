@@ -10,10 +10,14 @@ import win32evtlog
 
 class LogClass:
     def __init__(self, source: str | None = None) -> None:
+        def get_exe_path() -> str:
+            "返回当前程序运行的目录。"
+            if getattr(sys, "frozen", False) or "__compiled__" in globals():
+                return os.path.dirname(os.path.abspath(sys.executable))
+            else:
+                return os.path.dirname(os.path.abspath(sys.argv[0]))
         self.logfile = os.path.join(
-            os.path.dirname(sys.executable)
-            if getattr(sys, "frozen", False)
-            else os.path.dirname(__file__),
+            get_exe_path(),
             "data",
             os.path.splitext(os.path.basename(sys.argv[0]))[0] + ".log",
         )

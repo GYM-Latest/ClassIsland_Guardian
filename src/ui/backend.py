@@ -74,6 +74,14 @@ class UiBackend(QObject):
 
         self._wait_guardian_jobs_end()
 
+    def _wait_guardian_jobs_end(self) -> None:
+        from core.scheduler_manager import is_guardian_jobs_running
+
+        if is_guardian_jobs_running():
+            QTimer.singleShot(100, self._wait_guardian_jobs_end)
+        else:
+            self.hideTransition.emit()
+
     @Slot()
     def resume_protection(self) -> None:
         from core.scheduler_manager import add_protect_job
@@ -120,10 +128,25 @@ class UiBackend(QObject):
             max_instances=1,
         )
 
-    def _wait_guardian_jobs_end(self) -> None:
-        from core.scheduler_manager import is_guardian_jobs_running
+    @Slot()
+    def create_snapshot(self, remark: str | None = None) -> None:
+        from core.tasks import create_snapshot
 
-        if is_guardian_jobs_running():
-            QTimer.singleShot(100, self._wait_guardian_jobs_end)
+        self.log.info("用户UI请求创建快照。")
+        self.showTransition.emit()
+        QTimer.singleShot(100, self._wait_snapshot_jobs_end)
+        self.scheduler.add_job(
+            create_snapshot,
+            "date",
+            args=[remark],
+            id="create_snapshot",
+            max_instances=1,
+        )
+
+    def _wait_snapshot_jobs_end(self) -> None:
+        from core.scheduler_manager import is_job_running
+
+        if is_job_running("create_snapshot"):
+            QTimer.singleShot(100, self._wait_snapshot_jobs_end)
         else:
             self.hideTransition.emit()

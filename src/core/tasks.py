@@ -152,9 +152,14 @@ def main_window() -> None:
 
     start_main_window(log, db, scheduler)
 
-
 # 托盘图标任务
 def tray() -> None:
     log = LogClass("Task.ui_tray")
 
     start_tray(log, db, scheduler)
+
+# 创建快照任务
+def create_snapshot(remark: str | None = None) -> None:
+    log = LogClass("Task.create_snapshot")
+    snapshot = SnapshotClass(db, log)
+    snapshot.create_snapshot(remark)
