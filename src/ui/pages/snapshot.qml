@@ -15,6 +15,25 @@ FluentPage {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
+    ListModel {
+        id: snapshotModel
+    }
+
+    function refreshSnapshots() {
+        snapshotModel.clear()
+        const snapshots = backend.get_snapshot_list()
+        for (let i = 0; i < snapshots.length; i++) {
+            snapshotModel.append(snapshots[i])
+        }
+    }
+
+    Component.onCompleted: refreshSnapshots()
+
+    onVisibleChanged: {
+        if (visible)
+            refreshSnapshots()
+    }
+
     RowLayout {
         Layout.fillWidth: true
 
@@ -34,49 +53,52 @@ FluentPage {
         }
     }
 
-    ListView {
-    spacing: 8
-    width: parent.width
-    height: contentHeight
-    clip: true
+    ColumnLayout {
+        Layout.fillWidth: true
+        spacing: 8
 
-        // 测试数据
-        model: ListModel {
-            ListElement { name: "snapshot_2026-11-14.zip"; time: "2026-11-14 10:00" }
-            ListElement { name: "snapshot_2026-11-13.zip"; time: "2026-11-13 18:30" }
-        }
+        Repeater {
+            model: snapshotModel
 
             delegate: SettingCard {
-            width: ListView.view.width
-            
-            icon.name: "ic_fluent_folder_20_regular" 
-            
-            title: model.name
-            description: model.time
+                Layout.fillWidth: true
 
-            RowLayout {
-                spacing: 8
-                Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                
-                Button {
-                    icon.name: "ic_fluent_arrow_undo_20_regular"
-                    flat: true
-                    onClicked: console.log("恢复:", model.name)
-                    
-                    ToolTip.text: "恢复到此快照"
-                    ToolTip.visible: hovered
-                }
-                
-                Button {
-                    icon.name: "ic_fluent_delete_20_regular"
-                    flat: true
-                    onClicked: console.log("删除:", model.name)
-                    
-                    ToolTip.text: "删除此快照"
-                    ToolTip.visible: hovered
+                icon.name: "ic_fluent_folder_20_regular"
+
+                title: model.name
+                description: model.time + "  ·  " + formatSize(model.size)
+
+                RowLayout {
+                    spacing: 8
+                    Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+
+                    Button {
+                        icon.name: "ic_fluent_arrow_undo_20_regular"
+                        flat: true
+                        onClicked: backend.restore_snapshot(model.name)
+
+                        ToolTip.text: "恢复到此快照"
+                        ToolTip.visible: hovered
+                    }
+
+                    Button {
+                        icon.name: "ic_fluent_delete_20_regular"
+                        flat: true
+                        onClicked: backend.remove_snapshot(model.name)
+
+                        ToolTip.text: "删除此快照"
+                        ToolTip.visible: hovered
+                    }
                 }
             }
         }
+    }
+
+    Text {
+        Layout.fillWidth: true
+        visible: snapshotModel.count === 0
+        text: "暂无快照，点击右上角「拍摄新快照」创建一个。"
+        typography: Typography.Body
     }
 
     Dialog {
@@ -127,14 +149,21 @@ FluentPage {
 
         function onHideTransition() {
             waitingDialog.close()
+            refreshSnapshots()
         }
     }
 
     Dialog {
         id: waitingDialog
-        title: "正在拍摄快照"
+        title: (
+            backend.state.snapshot_state === "create" ? qsTr("正在拍摄快照")
+        : backend.state.snapshot_state === "remove" ? qsTr("正在删除快照")
+        : backend.state.snapshot_state === "restore" ? qsTr("正在恢复快照")
+        : qsTr("正在处理")
+        )
         modal: true
-        standardButtons: Dialog.NoButton 
+        standardButtons: Dialog.NoButton
+        footer: Item { height: 0 }
         closePolicy: Popup.NoAutoClose
 
         ColumnLayout {
@@ -143,6 +172,10 @@ FluentPage {
             ProgressBar {
                 Layout.fillWidth: true
                 value: backend.state.snapshot_total > 0 ? (backend.state.snapshot_current / backend.state.snapshot_total) : 0
+                indeterminate: (
+                    backend.state.snapshot_state === "create" ? false
+                : true
+                )
             }
 
             Text {
@@ -150,6 +183,7 @@ FluentPage {
             ? `${backend.state.snapshot_current} / ${backend.state.snapshot_total}` 
             : "正在获取文件列表..."
                 Layout.fillWidth: true
+                visible: backend.state.snapshot_state === "create"
             }
         }
     }
