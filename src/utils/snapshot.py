@@ -47,30 +47,33 @@ class SnapshotClass:
             return False
 
     def list_snapshot(self) -> list[list[str | int]] | Literal[False]:
-        "列出所有可用的快照。 成功返回列表，失败返回False"
+        "列出所有可用的快照，按创建时间倒序排列。成功返回 [[快照名称, 创建时间, 文件大小], ...]，失败返回 False"
+        entries: list[tuple[float, str, int]] = []
         try:
-            list = []
-            with os.scandir(self.snapshot_path) as entries:
-                for entry in entries:
-                    if entry.is_file():
-                        stat = entry.stat()
-                        list.append(
-                            [
-                                entry.name,
-                                datetime.fromtimestamp(stat.st_birthtime).strftime(
-                                    "%Y-%m-%d %H:%M:%S"
-                                ),
-                                stat.st_size,
-                            ]
-                        )
-            list = sorted(list, key=lambda x: x[1], reverse=True)
-            return list
+            with os.scandir(self.snapshot_path) as scanned:
+                for entry in scanned:
+                    if not entry.is_file() or not entry.name.lower().endswith(".zip"):
+                        continue
+                    stat = entry.stat()
+                    entries.append((stat.st_birthtime, entry.name, stat.st_size))
+
+            entries.sort(key=lambda item: (item[0], item[1]), reverse=True)
+            return [
+                [
+                    name,
+                    datetime.fromtimestamp(birthtime).strftime("%Y-%m-%d %H:%M:%S"),
+                    size,
+                ]
+                for birthtime, name, size in entries
+            ]
+
         except Exception as e:
             self.log.error(f"列出快照时出错，错误为：{e}")
             return False
 
     def restore_snapshot(self, name: str) -> bool:
         "恢复到指定的快照。 传入要恢复快照的文件名(string) 成功返回True，失败返回False"
+        self.db.state["snapshot_state"] = "restore"
         self.process.kill_classisland()
         if os.path.exists(os.path.join(self.snapshot_path, name)):
             try:
@@ -99,8 +102,11 @@ class SnapshotClass:
             zip_name = f"snapshot_{timestamp}.zip"
 
         try:
-            snapshot_total = sum(len(files) for _, _, files in os.walk(self.classisland_path))
-            self.db.state["snapshot_total"] = snapshot_total*2 # 压缩两次
+            snapshot_total = sum(
+                len(files) for _, _, files in os.walk(self.classisland_path)
+            )
+            self.db.state["snapshot_state"] = "create"
+            self.db.state["snapshot_total"] = snapshot_total * 2  # 压缩两次
             self.db.state["snapshot_current"] = 0
             if os.path.exists(self.classisland_path):
                 os.makedirs(self.snapshot_path, exist_ok=True)
@@ -124,6 +130,7 @@ class SnapshotClass:
     def remove_snapshot(self, name: str) -> bool:
         "移除指定的快照。 传入要删除的快照名称(String) 成功返回True，失败返回False"
         try:
+            self.db.state["snapshot_state"] = "remove"
             os.remove(os.path.join(self.snapshot_path, name))
             os.remove(os.path.join(self.recovery_snapshot_path, name))
             return True
