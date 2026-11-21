@@ -7,7 +7,7 @@ from utils.database import Database
 from utils.log import LogClass
 
 # 守护任务列表，停止守护时会停止这里的任务
-PROTECT_JOB_LIST = {"monitor_classisland_process", "check_classisland_issue"}
+PROTECT_JOB_LIST = {"monitor_classisland_process", "check_classisland_issue", "fixing_classisland"}
 scheduler: BackgroundScheduler
 db: Database
 
