@@ -5,6 +5,7 @@ from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 from utils.database import Database
 from utils.log import LogClass
 from utils.process import ProcessClass
+from utils.snapshot import SnapshotClass
 
 
 class UiBackend(QObject):
@@ -17,6 +18,7 @@ class UiBackend(QObject):
         self.scheduler = scheduler
         self.db = db
         self.log = log
+        self.snapshot = SnapshotClass(self.db, self.log)
 
         # 定时重新抓取数据
         self.timer = QTimer()
@@ -69,6 +71,7 @@ class UiBackend(QObject):
         from core.scheduler_manager import remove_protect_job
 
         self.log.info("用户UI请求停止保护。")
+        self.showTransition.emit()
         self.set_value("config", "protect_state", "stop")
         remove_protect_job()
 
@@ -128,13 +131,23 @@ class UiBackend(QObject):
             max_instances=1,
         )
 
-    @Slot()
+    @Slot(result="QVariantList")
+    def get_snapshot_list(self) -> list[dict[str, Any]]:
+        snapshots = self.snapshot.list_snapshot()
+        if not snapshots:
+            return []
+        return [
+            {"name": name, "time": created, "size": size}
+            for name, created, size in snapshots
+        ]
+
+    @Slot(str)
     def create_snapshot(self, remark: str | None = None) -> None:
         from core.tasks import create_snapshot
 
         self.log.info("用户UI请求创建快照。")
         self.showTransition.emit()
-        QTimer.singleShot(100, self._wait_snapshot_jobs_end)
+        QTimer.singleShot(100, lambda: self._wait_jobs_end("create_snapshot"))
         self.scheduler.add_job(
             create_snapshot,
             "date",
@@ -143,10 +156,40 @@ class UiBackend(QObject):
             max_instances=1,
         )
 
-    def _wait_snapshot_jobs_end(self) -> None:
+    @Slot(str)
+    def restore_snapshot(self, name: str) -> None:
+        from core.tasks import restore_snapshot
+
+        self.log.info(f"用户UI请求恢复快照：{name}。")
+        self.showTransition.emit()
+        QTimer.singleShot(100, lambda: self._wait_jobs_end("fixing_classisland"))
+        self.scheduler.add_job(
+            restore_snapshot,
+            "date",
+            args=[name],
+            id="fixing_classisland",
+            max_instances=1,
+        )
+
+    @Slot(str)
+    def remove_snapshot(self, name: str) -> None:
+        from core.tasks import remove_snapshot
+
+        self.log.info(f"用户UI请求删除快照：{name}。")
+        self.showTransition.emit()
+        QTimer.singleShot(100, lambda: self._wait_jobs_end("remove_snapshot"))
+        self.scheduler.add_job(
+            remove_snapshot,
+            "date",
+            args=[name],
+            id="remove_snapshot",
+            max_instances=1,
+        )
+
+    def _wait_jobs_end(self, job_id: str) -> None:
         from core.scheduler_manager import is_job_running
 
-        if is_job_running("create_snapshot"):
-            QTimer.singleShot(100, self._wait_snapshot_jobs_end)
+        if is_job_running(job_id):
+            QTimer.singleShot(100, lambda: self._wait_jobs_end(job_id))
         else:
             self.hideTransition.emit()
