@@ -118,20 +118,22 @@ FluentPage {
         )
         modal: true
         standardButtons: Dialog.NoButton 
+        footer: Item { height: 0 }
+        closePolicy: Popup.NoAutoClose
 
         ColumnLayout {
             spacing: 16
-
-            Text {
-                text: "等待所有守护任务结束..."
-                Layout.fillWidth: true
-            }
 
             ProgressBar {
                 id: progressBar
                 Layout.fillWidth: true
                 indeterminate: true 
             }
+
+            Text {
+                text: "等待所有守护任务结束..."
+                Layout.fillWidth: true
+            }
         }
-}
+    }
 }
