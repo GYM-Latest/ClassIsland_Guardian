@@ -14,6 +14,7 @@ backend: UiBackend | None = None
 
 secure_desktop_handle = None
 
+
 def start_main_window(log: LogClass, db: Database, scheduler: Any) -> None:
     """启动 QML 主窗口（阻塞直到窗口关闭）"""
     global secure_desktop_handle
@@ -22,10 +23,15 @@ def start_main_window(log: LogClass, db: Database, scheduler: Any) -> None:
     recent_desktop_handle = None
 
     # 根据配置切换安全桌面
-    if db.config.get("window_top_mode") == "secure_desktop" or secure_desktop_handle is not None:
+    if (
+        db.config.get("window_top_mode") == "secure_desktop"
+        or secure_desktop_handle is not None
+    ):
         try:
             if secure_desktop_handle is None:
-                secure_desktop_handle = window_manager.get_new_desktop("ClassIslandGuardianSecureDesktop")
+                secure_desktop_handle = window_manager.get_new_desktop(
+                    "ClassIslandGuardianSecureDesktop"
+                )
                 if secure_desktop_handle is False:
                     raise RuntimeError("创建安全桌面失败。")
                 if not window_manager.bind_desktop_to_thread(secure_desktop_handle):
@@ -36,18 +42,19 @@ def start_main_window(log: LogClass, db: Database, scheduler: Any) -> None:
             if not window_manager.goto_desktop(secure_desktop_handle):
                 window_manager.goto_desktop(recent_desktop_handle)
                 raise RuntimeError("切换到安全桌面失败。")
-        except RuntimeError as e:
+        except RuntimeError:
             try:
                 if secure_desktop_handle is not None:
                     secure_desktop_handle.CloseDesktop()
             except:
                 pass
-                    
+
     try:
         from PySide6.QtCore import QCoreApplication, QEvent
         from PySide6.QtWidgets import QApplication
+
         from RinUI import RinUIWindow
-        
+
         app = QApplication.instance() or QApplication(sys.argv)
         window = RinUIWindow(shared_engine=False)
         backend = UiBackend(scheduler, db, log)

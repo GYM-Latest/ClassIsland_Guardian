@@ -98,7 +98,9 @@ class UpdateClass:
                 try:
                     if os.path.exists(temp_zip_path):
                         os.remove(temp_zip_path)
-                    with requests.get(f"{proxy}{url}", stream=True, timeout=(10, 30)) as r:
+                    with requests.get(
+                        f"{proxy}{url}", stream=True, timeout=(10, 30)
+                    ) as r:
                         r.raise_for_status()
                         downloaded = 0
                         with open(temp_zip_path, "wb") as f:
@@ -128,7 +130,10 @@ class UpdateClass:
                 with zipfile.ZipFile(temp_zip_path, "r") as zf:
                     zf.extractall(update_path)
                 # 更新预启动修复环境
-                shutil.copy(os.path.join(guardianrecovery_path, "recovery", "recovery.wim"), os.path.join(guardianrecovery_path, "recovery.wim"))
+                shutil.copy(
+                    os.path.join(guardianrecovery_path, "recovery", "recovery.wim"),
+                    os.path.join(guardianrecovery_path, "recovery.wim"),
+                )
                 shutil.rmtree(os.path.join(guardianrecovery_path, "recovery"))
             except Exception as e:
                 self.db.state["update_status"] = "error"

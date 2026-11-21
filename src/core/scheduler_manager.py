@@ -1,13 +1,17 @@
+
 from apscheduler.events import EVENT_JOB_ERROR, JobExecutionEvent
 from apscheduler.schedulers.background import BackgroundScheduler
 
-import os
 from core import tasks
 from utils.database import Database
 from utils.log import LogClass
 
 # 守护任务列表，停止守护时会停止这里的任务
-PROTECT_JOB_LIST = {"monitor_classisland_process", "check_classisland_issue", "fixing_classisland"}
+PROTECT_JOB_LIST = {
+    "monitor_classisland_process",
+    "check_classisland_issue",
+    "fixing_classisland",
+}
 scheduler: BackgroundScheduler
 db: Database
 
@@ -49,7 +53,7 @@ def init_tasks(_scheduler: BackgroundScheduler, _db: Database) -> None:
         id="check_update",
         max_instances=1,
     )
-    
+
     # 添加更新后处理任务
     scheduler.add_job(
         tasks.after_update,

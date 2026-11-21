@@ -12,9 +12,9 @@ import win32con
 import win32gui
 from apscheduler.schedulers.base import STATE_STOPPED
 
+from utils.database import Database
 from utils.exec import ExecClass
 from utils.log import LogClass
-from utils.database import Database
 
 log = LogClass("Service.exit_app")
 exec = ExecClass(log)
@@ -34,7 +34,6 @@ scheduler: Any = None
 db: Database | None = None
 
 EXIT_HANDLERS_RUNNING = False
-EXIT_REASON: int | None = None
 
 
 def window_thread() -> None:
@@ -46,7 +45,6 @@ def window_thread() -> None:
     def wndproc(
         hwnd: int, message: int, event_id: int, session_id: int
     ) -> int | bool | None:
-        global EXIT_REASON
         if message == win32con.WM_CLOSE:
             log.info("WM_CLOSE 结束请求已被拦截。")
             return 0
@@ -55,9 +53,7 @@ def window_thread() -> None:
             log.info("收到 WM_DESTROY 通知。")
             return 0
 
-        if (
-            message == win32con.WM_ENDSESSION
-        ):
+        if message == win32con.WM_ENDSESSION:
             if not event_id:
                 log.info("系统关机/注销已被取消，Guardian 继续运行。")
                 return 0
@@ -65,13 +61,13 @@ def window_thread() -> None:
             log.info("系统正在关闭，Guardian正在退出...")
             if scheduler is not None and scheduler.state != STATE_STOPPED:
                 scheduler.shutdown(False)
-            
+
             exec.remove_ifeo("guardian.exe")
             exec.remove_ifeo("launcher.exe")
 
             if db is not None:
                 db.save_database(log)
-                
+
             os._exit(0)
 
         if message == win32con.WM_QUERYENDSESSION:
@@ -108,9 +104,9 @@ def window_thread() -> None:
     # print(hwnd)
     win32gui.PumpMessages()  # blocks until PostQuitMessage() is called
 
+
 def init(_scheduler: Any, _db: Database | None) -> None:
     global scheduler, db
     scheduler = _scheduler
     db = _db
     window_thread()
-

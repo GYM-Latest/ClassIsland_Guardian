@@ -110,7 +110,9 @@ class ProcessClass:
                 os.path.dirname(os.path.dirname(exe))
             ) == os.path.normcase(classisland_path)
         except Exception as e:
-            self.log.warn(f"校验进程 exe 路径时出错，错误是：{e}, exe={exe}, classisland_path={classisland_path}")
+            self.log.warn(
+                f"校验进程 exe 路径时出错，错误是：{e}, exe={exe}, classisland_path={classisland_path}"
+            )
             return True
 
     # 检查ClassIsland进程数量并返回

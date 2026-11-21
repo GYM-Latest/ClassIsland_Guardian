@@ -88,7 +88,7 @@ def main() -> None:
 
         # 初始化日志和 BCD
         log = LogClass("Service.start_app")
-        bcd = BcdClass(log)
+        BcdClass(log)
         exec = ExecClass(log)
 
         # 初始化调度器与热重启标志
@@ -127,7 +127,7 @@ def main() -> None:
         core.scheduler_manager.init_tasks(scheduler, db)
         scheduler.start()
         # 运行 Service.app_exit()
-        core.exit_app.init(scheduler,db)
+        core.exit_app.init(scheduler, db)
 
     except Exception as e:
         log = LogClass("Service.hot_reboot")

@@ -2,11 +2,12 @@
 # Copyright (C) 2026 GYM_Latest
 
 import sqlite3
+import threading
 import time
 from typing import Any, Literal
-import threading
 
 from utils.version import VERSION
+
 
 # 安全字典
 class SafeDict:
@@ -29,7 +30,8 @@ class SafeDict:
     def copy(self) -> dict[str, Any]:
         with self._lock:
             return self._dict.copy()
-        
+
+
 # 封装数据库方法
 class Database:
     def __init__(self, database_path: str) -> None:
@@ -103,9 +105,7 @@ class Database:
             str(self.config.get("auto_download_update")).lower() != "false"
         )
         self.config["update_channel"] = self.config.get("update_channel") or "stable"
-        self.config["tray_icon"] = (
-            str(self.config.get("tray_icon")).lower() != "false"
-        )
+        self.config["tray_icon"] = str(self.config.get("tray_icon")).lower() != "false"
         self.config["notification"] = (
             str(self.config.get("notification")).lower() != "false"
         )

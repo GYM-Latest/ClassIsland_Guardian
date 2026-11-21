@@ -1,9 +1,11 @@
+from typing import Literal
+
 import win32con
 import win32gui
 import win32service
-from typing import Literal
 from PySide6.QtWidgets import QWidget
 from pywintypes import HANDLEType as PyHANDLE
+
 
 class WindowClass:
     def __init__(self, log) -> None:
@@ -31,28 +33,21 @@ class WindowClass:
     def get_new_desktop(self, name: str) -> PyHANDLE | Literal[False]:
         """创建一个新的桌面并返回其句柄。"""
         try:
-            h_desk = win32service.CreateDesktop(
-                name,
-                0,
-                win32con.GENERIC_ALL,
-                None
-            )
-            
+            h_desk = win32service.CreateDesktop(name, 0, win32con.GENERIC_ALL, None)
+
             self.log.info(f"成功创建新桌面: {name}")
             return h_desk
-            
+
         except Exception as e:
-            self.log.error(f"创建桌面失败 (WinError: {e.winerror})，错误信息: {e.strerror}")
+            self.log.error(
+                f"创建桌面失败 (WinError: {e.winerror})，错误信息: {e.strerror}"
+            )
             return False
 
     def get_recent_desktop(self) -> PyHANDLE | Literal[False]:
         """获取当前的桌面句柄。"""
         try:
-            h_desk = win32service.OpenInputDesktop(
-                0,
-                False,
-                win32con.MAXIMUM_ALLOWED
-            )
+            h_desk = win32service.OpenInputDesktop(0, False, win32con.MAXIMUM_ALLOWED)
             self.log.info("成功获取当前线程的桌面句柄")
             return h_desk
         except Exception as e:

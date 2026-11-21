@@ -4,8 +4,9 @@
 import os
 import sys
 from datetime import datetime
-import win32evtlogutil
+
 import win32evtlog
+import win32evtlogutil
 
 
 class LogClass:
@@ -16,6 +17,7 @@ class LogClass:
                 return os.path.dirname(os.path.abspath(sys.executable))
             else:
                 return os.path.dirname(os.path.abspath(sys.argv[0]))
+
         self.logfile = os.path.join(
             get_exe_path(),
             "data",
