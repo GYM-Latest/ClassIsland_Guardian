@@ -1,17 +1,14 @@
-import time
-from typing import Any
-
 import os
+from typing import Any
 
 from ui.main_window import start_main_window
 from ui.tray import start_tray
 from utils.database import Database
+from utils.exec import ExecClass
 from utils.log import LogClass
 from utils.process import ProcessClass
 from utils.snapshot import SnapshotClass
 from utils.update import UpdateClass
-from utils.exec import ExecClass
-
 
 scheduler: Any
 db: Database
@@ -36,15 +33,18 @@ def process_missing(
     log.info("尝试恢复最新快照。")
     # 先备份当前状态
     snapshot.create_snapshot("自动回滚前生成的快照")
-    # 忽略自动回滚备份，只恢复真正的历史快照
     snapshots = snapshot.list_snapshot()
     if snapshots:
-        snapshots = [s for s in snapshots if "自动回滚前生成的快照" not in s]
-        if snapshots and snapshot.restore_snapshot(snapshots[0]):
-            if process.start_classisland():
-                return
-        else:
-            log.error("恢复快照时出错，错误是：没有可用快照")
+        snapshots = [
+            snapshot_row[0]
+            for snapshot_row in snapshots
+            if "自动回滚前生成的快照" not in snapshot_row[0]
+        ]
+    if snapshots and snapshot.restore_snapshot(snapshots[0]):
+        if process.start_classisland():
+            return
+    else:
+        log.error("恢复快照时出错，错误是：没有可用快照")
 
     # 尝试逃逸式启动
     log.info("尝试逃逸式启动。")
@@ -137,14 +137,16 @@ def update() -> None:
     update = UpdateClass(log, db)
     update.update(db.state["latest_release"])
 
+
 # 更新后处理任务
 def after_update() -> None:
     log = LogClass("Task.after_update")
     exec = ExecClass(log)
-    if os.path.exists(os.path.join(exec.get_exe_path(),".afterupdate")):
-        os.remove(os.path.join(exec.get_exe_path(),".afterupdate"))
+    if os.path.exists(os.path.join(exec.get_exe_path(), ".afterupdate")):
+        os.remove(os.path.join(exec.get_exe_path(), ".afterupdate"))
         update = UpdateClass(log, db)
         update.after_update()
+
 
 # UI主窗口任务
 def main_window() -> None:
@@ -152,14 +154,30 @@ def main_window() -> None:
 
     start_main_window(log, db, scheduler)
 
+
 # 托盘图标任务
 def tray() -> None:
     log = LogClass("Task.ui_tray")
 
     start_tray(log, db, scheduler)
 
+
 # 创建快照任务
 def create_snapshot(remark: str | None = None) -> None:
     log = LogClass("Task.create_snapshot")
     snapshot = SnapshotClass(db, log)
     snapshot.create_snapshot(remark)
+
+
+# 回滚快照任务
+def restore_snapshot(name: str) -> None:
+    log = LogClass("Task.restore_snapshot")
+    snapshot = SnapshotClass(db, log)
+    snapshot.restore_snapshot(name)
+
+
+# 删除快照任务
+def remove_snapshot(name: str) -> None:
+    log = LogClass("Task.remove_snapshot")
+    snapshot = SnapshotClass(db, log)
+    snapshot.remove_snapshot(name)
