@@ -15,12 +15,13 @@ FluentPage {
         Layout.fillWidth: true
         icon.name: "ic_fluent_folder_20_regular"
         title: "ClassIsland 安装路径"
-        description: backend.path.classisland_path || "未设置"
+        description: "需要暂停保护方能修改"
 
         TextField {
             placeholderText: "请输入路径"
+            enabled: backend.config.protect_state !== "running"
             text: backend.path.classisland_path || ""
-            onEditingFinished: backend.set_value("path", "classisland_path", text)
+            onTextEdited: backend.set_value("path", "classisland_path", text)
         }
     }
 
