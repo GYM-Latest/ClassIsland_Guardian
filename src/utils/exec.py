@@ -105,6 +105,19 @@ class ExecClass:
             self.log.error("启动进程失败，目录不存在")
             return False
 
+    # 无需令牌与特殊权限的启动指定程序
+    def start_without_token(self, path: str) -> bool:
+        "无需令牌与特殊权限的启动指定程序。 传入要启动文件的路径(string) 成功返回True，失败返回False"
+        name = os.path.basename(path)
+        if not self.remove_ifeo(name):
+            return False
+        try:
+            subprocess.Popen([path])
+            return True
+        except Exception as e:
+            self.log.error(f"启动进程失败，错误是：{e}")
+            return False
+
     # 结束指定进程
     def kill_process(self, name: str) -> bool:
         "结束指定进程。 传入要结束的进程名(string)。 成功返回True"
