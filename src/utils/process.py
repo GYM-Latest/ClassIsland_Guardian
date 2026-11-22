@@ -171,7 +171,10 @@ class ProcessClass:
 
     # 启动指定文件，并检查Classisland是否已启动成功
     def _start_classisland_and_check(self, path: str, token: PyHANDLE) -> bool:
-        self.exec.start(path, token)
+        if self.db.config.get("debug_mode"):
+            self.exec.start_without_token(path)
+        else:
+            self.exec.start(path, token)
         for _ in range(50):
             time.sleep(0.1)
             if self.get_classisland_status() >= 1:
@@ -191,10 +194,11 @@ class ProcessClass:
         classisland_process_name = self.db.path.get("classisland_process_name")
         classisland_token = self._get_launch_classisland_token()
         if (
-            not self._get_classisland_app_path(classisland_path)
-            or not classisland_token
+            not (self._get_classisland_app_path(classisland_path))
+            or (not classisland_token
+            and not self.db.config.get("debug_mode"))
         ):
-            # 找不到可用版本或token获取失败不尝试启动
+            # 找不到可用版本或token获取失败不尝试启动，调试模式例外
             return False
         classisland_process_path = os.path.join(
             self._get_classisland_app_path(classisland_path), classisland_process_name
@@ -294,10 +298,11 @@ class ProcessClass:
         classisland_process_dir = self._get_classisland_app_path(classisland_path)
         classisland_token = self._get_launch_classisland_token()
         if (
-            not self._get_classisland_app_path(classisland_path)
-            or not classisland_token
+            not (self._get_classisland_app_path(classisland_path))
+            or (not classisland_token
+            and not self.db.config.get("debug_mode"))
         ):
-            # 找不到可用版本或token获取失败不尝试启动
+            # 找不到可用版本或token获取失败不尝试启动，调试模式例外
             return False
 
         self._cleanup_old_escape_dirs()
