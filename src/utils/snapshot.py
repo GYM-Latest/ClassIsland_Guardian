@@ -40,7 +40,7 @@ class SnapshotClass:
                             zf.write(file_path, arcname)
                         except Exception as e:
                             self.log.warn(f"压缩文件 {file_path} 时出错，错误是：{e}")
-                        self.db.state["snapshot_current"] += 1
+                        self.db.state["snapshot_create_current"] += 1
             return True
         except Exception as e:
             self.log.error(f"压缩文件时出错，错误是：{e}")
@@ -106,8 +106,8 @@ class SnapshotClass:
                 len(files) for _, _, files in os.walk(self.classisland_path)
             )
             self.db.state["snapshot_state"] = "create"
-            self.db.state["snapshot_total"] = snapshot_total * 2  # 压缩两次
-            self.db.state["snapshot_current"] = 0
+            self.db.state["snapshot_create_total"] = snapshot_total * 2  # 压缩两次
+            self.db.state["snapshot_create_current"] = 0
             if os.path.exists(self.classisland_path):
                 os.makedirs(self.snapshot_path, exist_ok=True)
                 if not self._zip_dir(

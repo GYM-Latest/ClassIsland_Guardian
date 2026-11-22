@@ -171,7 +171,9 @@ FluentPage {
 
             ProgressBar {
                 Layout.fillWidth: true
-                value: backend.state.snapshot_total > 0 ? (backend.state.snapshot_current / backend.state.snapshot_total) : 0
+                value: backend.state.snapshot_create_total > 0
+                    ? (backend.state.snapshot_create_current / backend.state.snapshot_create_total)
+                    : 0
                 indeterminate: (
                     backend.state.snapshot_state === "create" ? false
                 : true
@@ -179,9 +181,9 @@ FluentPage {
             }
 
             Text {
-                    text: (backend.state.snapshot_total > 0) 
-            ? `${backend.state.snapshot_current} / ${backend.state.snapshot_total}` 
-            : "正在获取文件列表..."
+                text: (backend.state.snapshot_create_total > 0)
+                    ? `${backend.state.snapshot_create_current} / ${backend.state.snapshot_create_total}`
+                    : "正在获取文件列表..."
                 Layout.fillWidth: true
                 visible: backend.state.snapshot_state === "create"
             }
