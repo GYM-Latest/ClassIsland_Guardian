@@ -15,7 +15,7 @@ FluentPage {
         Layout.fillWidth: true
         icon.name: "ic_fluent_shield_lock_20_regular"
         title: "标记为系统关键进程"
-        description: "Guardian 自身被结束时会触发蓝屏，防止恶意结束"
+        description: "Guardian 自身被结束时会触发蓝屏，防止恶意结束（修改需重启计算机后生效）"
 
         Switch {
             checked: backend.config.critical_process
@@ -38,7 +38,7 @@ FluentPage {
         Layout.fillWidth: true
         icon.name: "ic_fluent_window_shield_20_regular"
         title: "窗口置顶模式"
-        description: "选择 Guardian 窗口的置顶策略"
+        description: "选择 Guardian 窗口的置顶策略（修改需重启计算机后生效）"
 
         ComboBox {
             model: [
@@ -75,12 +75,12 @@ FluentPage {
         description: "检查到新版本时弹出提示"
 
         Switch {
-            checked: backend.config.auto_download_update
+            checked: backend.config.auto_check_update
             text: ""
             checkedText: ""
             uncheckedText: ""
             onCheckedChanged: backend.set_value(
-                "config", "auto_download_update", checked
+                "config", "auto_check_update", checked
             )
         }
     }
