@@ -2,12 +2,12 @@ import os
 from typing import Any
 
 from ui.main_window import start_main_window
-from ui.tray import start_tray
 from utils.database import Database
 from utils.exec import ExecClass
 from utils.log import LogClass
 from utils.process import ProcessClass
 from utils.snapshot import SnapshotClass
+from utils.tray import TrayClass
 from utils.update import UpdateClass
 
 scheduler: Any
@@ -25,34 +25,44 @@ def task_dependency_init(_scheduler: Any, _db: Database) -> None:
 def process_missing(
     log: LogClass, process: ProcessClass, snapshot: SnapshotClass
 ) -> None:
+    # 回滚到最新快照（排除自动回滚前生成的备份）
+    def _restore_latest_snapshot() -> None:
+        snapshots = snapshot.list_snapshot()
+        if snapshots:
+            snapshots = [
+                snapshot_row[0]
+                for snapshot_row in snapshots
+                if "自动回滚前生成的快照" not in snapshot_row[0]
+            ]
+        if not (snapshots and snapshot.restore_snapshot(snapshots[0])):
+            log.error("恢复快照时出错，错误是：没有可用快照")
+
+    # 拉起前回滚快照
+    if db.config.get("rollback_before_launch"):
+        _restore_latest_snapshot()
+
+    # 直接启动
     if process.start_classisland():
         return
     log.info("拉起失败，ClassIsland进程仍未在运行。")
 
-    # 拉起失败后先恢复快照
-    log.info("尝试恢复最新快照。")
-    # 先备份当前状态
-    snapshot.create_snapshot("自动回滚前生成的快照")
-    snapshots = snapshot.list_snapshot()
-    if snapshots:
-        snapshots = [
-            snapshot_row[0]
-            for snapshot_row in snapshots
-            if "自动回滚前生成的快照" not in snapshot_row[0]
-        ]
-    if snapshots and snapshot.restore_snapshot(snapshots[0]):
-        if process.start_classisland():
-            return
-    else:
-        log.error("恢复快照时出错，错误是：没有可用快照")
+    # 拉起失败后回滚快照
+    if db.config.get("rollback_on_fail"):
+        _restore_latest_snapshot()
+
+    # 再次尝试直接启动
+    if process.start_classisland():
+        return
 
     # 尝试逃逸式启动
-    log.info("尝试逃逸式启动。")
-    if process.escape_start_classisland():
-        log.info(
-            f"逃逸式启动成功！当前 ClassIsland 目录：{db.path.get('classisland_path')} ，当前可执行文件名称：{db.path.get('classisland_process_name')}"
-        )
-        return
+    if db.config.get("escape_launch_ci"):
+        log.info("尝试逃逸式启动。")
+        if process.escape_start_classisland():
+            log.info(
+                f"逃逸式启动成功！当前 ClassIsland 目录：{db.path.get('classisland_path')} ，当前可执行文件名称：{db.path.get('classisland_process_name')}"
+            )
+            return
+
     log.error("拉起失败。")
 
 
@@ -97,16 +107,15 @@ def check_classisland_issue() -> None:
 # 监控classisland进程任务
 def monitor_classisland_process() -> None:
     from core.scheduler_manager import is_job_running
-
     log = LogClass("Task.monitor_classisland_process")
     process = ProcessClass(db, log)
     snapshot = SnapshotClass(db, log)
 
-    # 根据配置查杀非目录进程
+    # 查杀非目录进程
     if db.config.get("kill_non_install_ci"):
         process.kill_non_install_classisland()
 
-    # 根据配置查杀多开进程
+    # 查杀多开进程
     if db.config.get("kill_multi_ci"):
         process.kill_multi_ci()
 
@@ -158,9 +167,8 @@ def main_window() -> None:
 # 托盘图标任务
 def tray() -> None:
     log = LogClass("Task.ui_tray")
-
-    start_tray(log, db, scheduler)
-
+    tray = TrayClass(log, db, scheduler)
+    tray.start_tray()
 
 # 创建快照任务
 def create_snapshot(remark: str | None = None) -> None:
