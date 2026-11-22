@@ -18,7 +18,6 @@ try:
 
     import core.exit_app
     import core.scheduler_manager
-    from utils.bcd import BcdClass
     from utils.database import Database
     from utils.exec import ExecClass
     from utils.log import LogClass
@@ -88,7 +87,6 @@ def main() -> None:
 
         # 初始化日志和 BCD
         log = LogClass("Service.start_app")
-        BcdClass(log)
         exec = ExecClass(log)
 
         # 初始化调度器与热重启标志
