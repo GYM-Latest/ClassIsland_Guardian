@@ -101,8 +101,8 @@ class Database:
         self.config["window_top_mode"] = (
             self.config.get("window_top_mode") or "uiaccess"
         )
-        self.config["auto_download_update"] = (
-            str(self.config.get("auto_download_update")).lower() != "false"
+        self.config["auto_check_update"] = (
+            str(self.config.get("auto_check_update")).lower() != "false"
         )
         self.config["update_channel"] = self.config.get("update_channel") or "stable"
         self.config["tray_icon"] = str(self.config.get("tray_icon")).lower() != "false"
