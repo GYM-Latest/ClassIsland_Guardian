@@ -115,6 +115,9 @@ class Database:
         self.config["service_error_mode"] = (
             self.config.get("service_error_mode") or "silent_restart"
         )
+        self.config["debug_mode"] = (
+            str(self.config.get("debug_mode")).lower() == "true"
+        )
 
         self.meta["version"] = VERSION
         self.meta["create_time"] = self.meta.get("create_time") or time.asctime(
