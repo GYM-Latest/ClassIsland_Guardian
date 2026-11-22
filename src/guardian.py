@@ -117,12 +117,16 @@ def main() -> None:
         db.save_database(log)
 
         # 按照配置标记关键进程
-        if db.config.get("critical_process"):
-            # exec.make_process_critical()
-            print("关键进程标记已启用，但由于调试需要，暂时无法在此环境下启用。")
+        if db.config.get("debug_mode") and db.config.get("critical_process"):
+            log.info("调试模式已启用，关键进程标记功能已禁用。")
+        elif not db.config.get("debug_mode") and db.config.get("critical_process"):
+            exec.make_process_critical()
 
         log.info(f"ClassIsland Guardian 已启动 ~ | 版本：{VERSION} ({CODENAME})")
 
+        if db.config.get("debug_mode"):
+            log.info("正以调试模式运行ClassIsland Guardian！")
+        
         # 注册守护任务
         core.scheduler_manager.init_tasks(scheduler, db)
         scheduler.start()
