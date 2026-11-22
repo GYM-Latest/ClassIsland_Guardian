@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from core import tasks
 from utils.database import Database
 from utils.log import LogClass
+from utils.tray import TrayClass
 
 # 守护任务列表，停止守护时会停止这里的任务
 PROTECT_JOB_LIST = {
@@ -27,6 +28,11 @@ def task_error_handler(event: JobExecutionEvent) -> None:
         log.info(
             f"成功禁用发生异常的任务：{event.job_id}，当前任务列表：{scheduler.get_jobs()}"
         )
+        TrayClass.notify(
+            db,
+            "守护任务异常",
+            f"任务 {event.job_id} 出错并已停止：{event.exception}",
+        )        
     except Exception as e:
         log.error(
             f"禁用异常任务失败，错误是：{e}，当前任务列表：{scheduler.get_jobs()}"
@@ -44,15 +50,18 @@ def init_tasks(_scheduler: BackgroundScheduler, _db: Database) -> None:
     scheduler.add_listener(task_error_handler, EVENT_JOB_ERROR)
 
     # 添加保护任务
-    add_protect_job()
+    if db.config.get("protect_state") == "running":
+        add_protect_job()
 
     # 添加检查更新任务
-    scheduler.add_job(
-        tasks.check_update,
-        "date",
-        id="check_update",
-        max_instances=1,
-    )
+    if db.config.get("auto_check_update"):
+        scheduler.add_job(
+            tasks.check_update,
+            "interval",
+            hours=1,
+            id="check_update",
+            max_instances=1,
+        )
 
     # 添加更新后处理任务
     scheduler.add_job(
@@ -62,14 +71,14 @@ def init_tasks(_scheduler: BackgroundScheduler, _db: Database) -> None:
         max_instances=1,
     )
 
-    # UI图标任务
-    scheduler.add_job(
-        tasks.tray,
-        "date",
-        id="ui_tray",
-        max_instances=1,
-    )
-
+    # 托盘图标任务
+    if db.config.get("tray_icon"):
+        scheduler.add_job(
+            tasks.tray,
+            "date",
+            id="ui_tray",
+            max_instances=1,
+        )
 
 def is_guardian_jobs_running() -> bool:
     """检查是否有守护任务正在执行"""
